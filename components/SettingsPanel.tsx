@@ -72,7 +72,7 @@ export default function SettingsPanel({ meta, onChange, onNext }: Props) {
           >
             {meta.logo
               ? <img src={meta.logo} alt="logo" style={{ maxHeight: '80px', maxWidth: '100%', objectFit: 'contain' }} />
-              : <div style={{ color: '#bbb', fontSize: '13px' }}>📁 Click to upload header image<br /><span style={{ fontSize: '11px' }}>PNG / JPG</span></div>
+              : <div style={{ color: '#bbb', fontSize: '13px' }}>Click to upload header image<br /><span style={{ fontSize: '11px' }}>PNG / JPG</span></div>
             }
           </div>
           <input ref={logoRef} type="file" accept="image/*" onChange={handleLogo} style={{ display: 'none' }} />
@@ -103,11 +103,12 @@ export default function SettingsPanel({ meta, onChange, onNext }: Props) {
 
           <div style={{ marginBottom: '16px' }}>
             <label style={labelStyle}>Topics Covered</label>
-            <input
+            <textarea
               value={meta.topicsCovered || ''}
               onChange={set('topicsCovered')}
-              style={inputStyle}
-              placeholder="Topics Covered fine (ine, r..c. morm)"
+              rows={4}
+              style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.6' }}
+              placeholder="Write one topic per line"
             />
           </div>
 
@@ -137,7 +138,7 @@ export default function SettingsPanel({ meta, onChange, onNext }: Props) {
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(26,26,46,0.4)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(26,26,46,0.3)' }}
         >
-          Continue to Question Editor →
+          Continue to Question Editor ->
         </button>
       </div>
     </div>
