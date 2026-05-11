@@ -138,7 +138,7 @@ export default function SettingsPanel({ meta, onChange, onNext }: Props) {
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(26,26,46,0.4)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(26,26,46,0.3)' }}
         >
-          Continue to Question Editor ->
+          Continue to Question Editor {'->'}
         </button>
       </div>
     </div>
