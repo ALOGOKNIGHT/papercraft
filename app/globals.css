@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold: #e2b96a;
+  --gold-dark: #c9953a;
+  --navy: #1a1a2e;
+  --navy-mid: #16213e;
+  --navy-light: #0f3460;
+  --cream: #fffdf7;
+  --cream-mid: #f8f4ec;
+  --cream-dark: #ede8dc;
+  --border: #e8e3d5;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Crimson Text', Georgia, serif;
+  background: linear-gradient(160deg, var(--cream-mid) 0%, var(--cream-dark) 100%);
+  min-height: 100vh;
+  color: var(--navy);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--cream-dark); }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+
+/* Focus ring */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px rgba(226, 185, 106, 0.15);
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Ensure the paper starts at the very top of the PDF */
+  body {
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}

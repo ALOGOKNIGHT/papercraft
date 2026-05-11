@@ -1,0 +1,99 @@
+export type QuestionType =
+  | 'MCQ'
+  | 'Fill in the Blanks'
+  | 'Short Answer'
+  | 'Long Answer'
+  | 'Assertion-Reason'
+  | 'Case Study'
+
+export interface Question {
+  id: string
+  text: string
+  type: QuestionType
+  options: string[]       // for MCQ
+  marks: number
+  hasOr: boolean
+  orText: string
+  image?: string          // base64 for diagram
+}
+
+export interface SectionConfig {
+  id: 'A' | 'B' | 'C' | 'D' | 'E'
+  label: string
+  description: string
+  defaultMarks: number
+  defaultType: QuestionType
+}
+// lib/types.ts
+export interface Question {
+  id: string;
+  text: string;
+  type: QuestionType;
+  options: string[];
+  marks: number;
+  image?: string; // Add this line
+  // ... other fields
+}
+export interface PaperMeta {
+  schoolName: string
+  city: string
+  session: string
+  examTitle: string
+  subject: string
+  className: string
+  maxMarks: string
+  time: string
+  examDate?: string
+  testSeries?: string
+  topicsCovered?: string
+  logo: string | null
+  instructions: string
+  headerType?: 'standard' | 'custom'
+  customHeaderHTML?: string
+  customSectionNames?: Record<string, string>
+}
+
+export type QuestionsMap = Record<string, Question[]>
+
+export interface LayoutSettings {
+  // Page
+  pageSize: 'A4' | 'A3' | 'Letter'
+  pagesPerSheet: '1' | '2'
+  marginTop: number
+  marginBottom: number
+  marginLeft: number
+  marginRight: number
+
+  // Logo
+  logoSize: number        // px height
+  logoPosition: 'left' | 'center' | 'right'
+
+  // Typography
+  schoolNameSize: number
+  examTitleSize: number
+  questionFontSize: number
+  instructionFontSize: number
+  fontFamily: 'Times New Roman' | 'Arial' | 'Georgia' | 'Calibri'
+
+  // Spacing
+  lineHeight: number
+  sectionSpacing: number   // px gap between sections
+  questionSpacing: number  // px gap between questions
+  qNoWidth: number         // px width of Q.NO column
+
+  // Border
+  tableBorder: 'solid' | 'double' | 'dashed' | 'none'
+  borderWidth: number
+
+  // Header divider
+  headerDivider: 'double' | 'single' | 'none'
+
+  // MCQ Format
+  mcqLayout: '1-col' | '2-col' | '4-col'
+
+  // Watermark
+  watermarkEnabled: boolean
+  watermarkOpacity: number
+  watermarkRotation: number
+  watermarkScale: number
+}
