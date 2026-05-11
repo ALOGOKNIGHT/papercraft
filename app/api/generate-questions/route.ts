@@ -209,6 +209,35 @@ type FallbackQuestion = {
   orText: string;
 };
 
+function normalizePowersOutsideMath(input: string): string {
+  if (!input.trim()) return input;
+
+  return input
+    .split(/(\$[^$]*\$)/g)
+    .map((part, index) => {
+      if (index % 2 === 1) return part;
+      return part.replace(
+        /(?<![\\$])((?:\([^\n()]+\)|\b[a-zA-Z0-9]+))\^(\{[^{}]+\}|\([^\n()]+\)|-?\d+|[a-zA-Z]+)/g,
+        (_, base: string, exponent: string) => {
+          const normalizedExponent = exponent.startsWith('{')
+            ? exponent
+            : `{${exponent.replace(/^\(|\)$/g, '')}}`;
+          return `$${base}^${normalizedExponent}$`;
+        }
+      );
+    })
+    .join('');
+}
+
+function normalizeQuestionMath<T extends { text: string; options: string[]; orText: string }>(rows: T[]): T[] {
+  return rows.map((row) => ({
+    ...row,
+    text: normalizePowersOutsideMath(row.text),
+    options: row.options.map((option) => normalizePowersOutsideMath(option)),
+    orText: normalizePowersOutsideMath(row.orText),
+  }));
+}
+
 /** When models return empty JSON or unusable shapes, split pasted paper text into questions. */
 function fallbackFromPlaintext(rawText: string, defaultMarks: number, defaultType: string): FallbackQuestion[] {
   const text = rawText.replace(/\r\n/g, '\n').trim();
@@ -337,8 +366,10 @@ Rules:
 - "hasOr"/"orText": alternate branch if present in input
 
 Math: put LaTeX inside $...$ e.g. $\\frac{a}{b}$
+- For powers/exponents, NEVER leave plain caret notation like x^2 or 10^-3 outside math mode.
+- Write exponents as LaTeX such as $x^{2}$, $10^{-3}$, $(a+b)^{2}$
 
-Input Text (verbatim JSON string — parse mentally, do not echo this line as JSON output):
+Input Text (verbatim JSON string â€” parse mentally, do not echo this line as JSON output):
 ${escapedInput}`;
 
     let resultText = '';
@@ -444,19 +475,19 @@ ${escapedInput}`;
       if (resultText.trim()) {
         const parsed = extractJson(resultText);
         const rawList = coerceQuestionsArray(parsed);
-        normalized = normalizeItems(rawList, dm, defaultType);
+        normalized = normalizeQuestionMath(normalizeItems(rawList, dm, defaultType));
       }
     } catch {
       normalized = [];
     }
 
     if (normalized.length === 0) {
-      const fb = fallbackFromPlaintext(rawText, dm, defaultType);
+      const fb = normalizeQuestionMath(fallbackFromPlaintext(rawText, dm, defaultType));
       if (fb.length === 0) {
         return NextResponse.json(
           {
             error:
-              'Could not extract questions. Paste numbered questions (1. … 2. …) or fix your AI keys/models.',
+              'Could not extract questions. Paste numbered questions (1. â€¦ 2. â€¦) or fix your AI keys/models.',
             debug: { provider, snippet: (resultText || '').slice(0, 700) },
           },
           { status: 422 }
@@ -466,7 +497,7 @@ ${escapedInput}`;
         questions: fb,
         usedFallback: true,
         notice:
-          'AI JSON was empty or invalid — questions were split from your text locally. Review formatting (especially MCQ options).',
+          'AI JSON was empty or invalid â€” questions were split from your text locally. Review formatting (especially MCQ options).',
       });
     }
 
