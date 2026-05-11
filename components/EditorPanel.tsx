@@ -24,6 +24,51 @@ const labelStyle: React.CSSProperties = {
   color: '#999', textTransform: 'uppercase', marginBottom: '5px', display: 'block',
 }
 
+/** e.g. "Stem:\na) …\nb) …\nc) …\nd) …" or "(a) …" — returns stem + four options */
+function parseMcqFromPastedBlock(raw: string): { stem: string; options: [string, string, string, string] } | null {
+  const normalized = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+  if (!normalized) return null
+
+  const lines = normalized.split('\n')
+  // (a) Text OR a) Text OR a. Text OR a: Text
+  const optRe = /^\s*(?:\(([a-dA-D])\)|([a-dA-D]))[\)\.\:]\s*(.+)$/
+
+  function parseOptionLine(line: string): { letter: string; text: string } | null {
+    const m = line.trim().match(optRe)
+    if (!m) return null
+    const letter = (m[1] || m[2]).toLowerCase()
+    const text = (m[3] || '').trim()
+    if (!text) return null
+    return { letter, text }
+  }
+
+  const nonEmpty = lines
+    .map((l, idx) => ({ line: l.trim(), idx }))
+    .filter((x) => x.line !== '')
+
+  for (let p = 0; p <= nonEmpty.length - 4; p++) {
+    const parsed = nonEmpty.slice(p, p + 4).map((x) => parseOptionLine(x.line))
+    if (parsed.some((x) => !x)) continue
+    if (parsed[0]!.letter !== 'a' || parsed[1]!.letter !== 'b' || parsed[2]!.letter !== 'c' || parsed[3]!.letter !== 'd') continue
+
+    const firstLineIdx = nonEmpty[p].idx
+    const stemLines = lines
+      .slice(0, firstLineIdx)
+      .map((l) => l.trim())
+      .filter((l) => l !== '')
+    let stem = stemLines.join('\n').trim()
+    stem = stem.replace(/:\s*$/, '').trim()
+    if (!stem) continue
+
+    return {
+      stem,
+      options: [parsed[0]!.text, parsed[1]!.text, parsed[2]!.text, parsed[3]!.text],
+    }
+  }
+
+  return null
+}
+
 function QuestionCard({
   q, index, onEdit, onDelete,
 }: { q: Question; index: number; onEdit: (updated: Question) => void; onDelete: () => void }) {
@@ -173,6 +218,25 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta }: 
   const [provider, setProvider] = useState<'gemini' | 'groq' | 'claude' | 'grok' | 'deepseek'>('gemini')
 
   const section = SECTIONS.find(s => s.id === activeSection)!
+
+  const handleManualQuestionPaste = useCallback(
+    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const pasted = e.clipboardData.getData('text/plain')
+      const parsed = parseMcqFromPastedBlock(pasted)
+      if (!parsed) return
+      e.preventDefault()
+      setNewQ((q) => ({
+        ...q,
+        text: parsed.stem,
+        type: 'MCQ',
+        options: [...parsed.options],
+        marks: q.marks ?? section.defaultMarks,
+        hasOr: q.hasOr ?? false,
+        orText: q.orText ?? '',
+      }))
+    },
+    [section.defaultMarks]
+  )
 
   const addQuestion = () => {
     if (!newQ.text?.trim()) return
@@ -528,7 +592,14 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta }: 
             </select>
           </div>
 
-          <textarea value={newQ.text} onChange={e => setNewQ(q => ({ ...q, text: e.target.value }))} rows={3} style={inputStyle} placeholder="Type question here..." />
+          <textarea
+            value={newQ.text}
+            onChange={(e) => setNewQ((q) => ({ ...q, text: e.target.value }))}
+            onPaste={handleManualQuestionPaste}
+            rows={5}
+            style={inputStyle}
+            placeholder='Type a question, or paste an MCQ block: question stem, then lines a) … b) … c) … d) … — options fill automatically.'
+          />
 
           {/* Manual Image Upload for specific question */}
           <div style={{ marginTop: '12px', marginBottom: '12px' }}>
