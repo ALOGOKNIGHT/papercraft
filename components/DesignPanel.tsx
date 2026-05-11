@@ -89,7 +89,9 @@ export default function DesignPanel({ meta, layout, questions, onMetaChange, onL
             </select>
           </div>
           <SliderRow label="Exam Title Size" value={layout.examTitleSize} min={11} max={22} onChange={set('examTitleSize')} unit="px" />
-          <SliderRow label="Question Font Size" value={layout.questionFontSize} min={10} max={18} onChange={set('questionFontSize')} unit="px" />
+          <SliderRow label="Section Heading Size" value={layout.sectionTitleSize} min={11} max={22} onChange={set('sectionTitleSize')} unit="px" />
+          <SliderRow label="Topics Covered Text Size" value={layout.topicsCoveredFontSize} min={10} max={18} onChange={set('topicsCoveredFontSize')} unit="px" />
+          <SliderRow label="Question Text Size" value={layout.questionFontSize} min={10} max={18} onChange={set('questionFontSize')} unit="px" />
           <SliderRow label="Instruction Font Size" value={layout.instructionFontSize} min={9} max={16} onChange={set('instructionFontSize')} unit="px" />
           <SliderRow label="Line Height" value={layout.lineHeight} min={1} max={2.5} step={0.1} unit="×" onChange={set('lineHeight')} />
         </Section>
@@ -212,7 +214,7 @@ export default function DesignPanel({ meta, layout, questions, onMetaChange, onL
             pageSize: 'A4', pagesPerSheet: '1',
             marginTop: 18, marginBottom: 18, marginLeft: 20, marginRight: 20,
             logoSize: 64, logoPosition: 'center',
-            schoolNameSize: 18, examTitleSize: 15, questionFontSize: 13, instructionFontSize: 12,
+            schoolNameSize: 18, examTitleSize: 15, sectionTitleSize: 15, topicsCoveredFontSize: 13, questionFontSize: 13, instructionFontSize: 12,
             fontFamily: 'Times New Roman', lineHeight: 1.5,
             sectionSpacing: 12, questionSpacing: 8, qNoWidth: 40,
             tableBorder: 'solid', borderWidth: 1, headerDivider: 'double', mcqLayout: '2-col',

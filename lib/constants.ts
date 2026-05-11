@@ -49,6 +49,8 @@ export const DEFAULT_LAYOUT = {
   logoPosition: 'center' as const,
   schoolNameSize: 18,
   examTitleSize: 15,
+  sectionTitleSize: 15,
+  topicsCoveredFontSize: 13,
   questionFontSize: 13,
   instructionFontSize: 12,
   fontFamily: 'Times New Roman' as const,

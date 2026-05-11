@@ -279,7 +279,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
 
               <div style={{ border: '1px solid #999', borderRadius: '15px', padding: '15px', background: '#e8e8e8', marginBottom: '20px' }}>
                 <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>Topics Covered:</div>
-                <div style={{ lineHeight: '1.8' }}>
+                <div style={{ lineHeight: '1.8', fontSize: `${layout.topicsCoveredFontSize}px` }}>
                   {meta.topicsCovered ? (
                     meta.topicsCovered.split('\n').filter(Boolean).map((line, i) => {
                       const parts = line.split(':');
@@ -326,7 +326,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                   border: `${layout.tableBorder === 'none' ? 2 : Math.max(2, layout.borderWidth)}px ${layout.tableBorder === 'none' ? 'solid' : layout.tableBorder} #000`,
                   padding: '6px 20px',
                   fontWeight: '900',
-                  fontSize: `${layout.questionFontSize + 2}px`,
+                  fontSize: `${layout.sectionTitleSize}px`,
                   display: 'inline-block',
                   borderRadius: '4px'
                 }}>

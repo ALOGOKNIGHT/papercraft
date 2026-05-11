@@ -71,6 +71,8 @@ export interface LayoutSettings {
   // Typography
   schoolNameSize: number
   examTitleSize: number
+  sectionTitleSize: number
+  topicsCoveredFontSize: number
   questionFontSize: number
   instructionFontSize: number
   fontFamily: 'Times New Roman' | 'Arial' | 'Georgia' | 'Calibri'
