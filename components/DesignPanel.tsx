@@ -152,6 +152,8 @@ export default function DesignPanel({ meta, layout, questions, onMetaChange, onL
           <SliderRow label="Space Between Sections" value={layout.sectionSpacing} min={4} max={40} onChange={set('sectionSpacing')} />
           <SliderRow label="Space Between Questions" value={layout.questionSpacing} min={2} max={24} onChange={set('questionSpacing')} />
           <SliderRow label="Q.NO. Column Width" value={layout.qNoWidth} min={20} max={100} step={2} onChange={set('qNoWidth')} />
+          <SliderRow label="Topics Box Padding" value={layout.topicsCoveredBoxPadding} min={8} max={32} onChange={set('topicsCoveredBoxPadding')} />
+          <SliderRow label="Topics Heading Gap" value={layout.topicsCoveredHeadingGap} min={2} max={24} onChange={set('topicsCoveredHeadingGap')} />
         </Section>
 
         {/* Border */}
@@ -216,7 +218,7 @@ export default function DesignPanel({ meta, layout, questions, onMetaChange, onL
             logoSize: 64, logoPosition: 'center',
             schoolNameSize: 18, examTitleSize: 15, sectionTitleSize: 15, topicsCoveredFontSize: 13, questionFontSize: 13, instructionFontSize: 12,
             fontFamily: 'Times New Roman', lineHeight: 1.5,
-            sectionSpacing: 12, questionSpacing: 8, qNoWidth: 40,
+            sectionSpacing: 12, questionSpacing: 8, qNoWidth: 40, topicsCoveredBoxPadding: 15, topicsCoveredHeadingGap: 10,
             tableBorder: 'solid', borderWidth: 1, headerDivider: 'double', mcqLayout: '2-col',
             watermarkEnabled: false, watermarkOpacity: 0.1, watermarkRotation: -45, watermarkScale: 100
           })}

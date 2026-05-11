@@ -277,8 +277,8 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                 <span>Time : {meta.time || '180 Min.'}</span>
               </div>
 
-              <div style={{ border: '1px solid #999', borderRadius: '15px', padding: '15px', background: '#e8e8e8', marginBottom: '20px' }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>Topics Covered:</div>
+              <div style={{ border: '1px solid #999', borderRadius: '15px', padding: `${layout.topicsCoveredBoxPadding}px`, background: '#e8e8e8', marginBottom: '20px' }}>
+                <div style={{ fontWeight: 'bold', fontSize: `${layout.topicsCoveredFontSize}px`, marginBottom: `${layout.topicsCoveredHeadingGap}px` }}>Topics Covered:</div>
                 <div style={{ lineHeight: '1.8', fontSize: `${layout.topicsCoveredFontSize}px` }}>
                   {meta.topicsCovered ? (
                     meta.topicsCovered.split('\n').filter(Boolean).map((line, i) => {

@@ -58,6 +58,8 @@ export const DEFAULT_LAYOUT = {
   sectionSpacing: 12,
   questionSpacing: 8,
   qNoWidth: 40,
+  topicsCoveredBoxPadding: 15,
+  topicsCoveredHeadingGap: 10,
   tableBorder: 'solid' as const,
   borderWidth: 1,
   headerDivider: 'double' as const,

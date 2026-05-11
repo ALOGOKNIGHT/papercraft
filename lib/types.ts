@@ -82,6 +82,8 @@ export interface LayoutSettings {
   sectionSpacing: number   // px gap between sections
   questionSpacing: number  // px gap between questions
   qNoWidth: number         // px width of Q.NO column
+  topicsCoveredBoxPadding: number
+  topicsCoveredHeadingGap: number
 
   // Border
   tableBorder: 'solid' | 'double' | 'dashed' | 'none'
