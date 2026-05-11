@@ -211,8 +211,9 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta }: 
           sectionLabel: section.label,
           sectionDescription: section.description,
           defaultMarks: section.defaultMarks,
-          subject: meta.subject,
-          provider, // Sending selected provider to backend
+          defaultType: section.defaultType,
+          subject: meta.subject || 'General',
+          provider,
         }),
       });
 
@@ -220,11 +221,18 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta }: 
       if (!res.ok || data.error) throw new Error(data.error || `Server error: ${res.status}`);
 
       if (data.questions && Array.isArray(data.questions)) {
+        if (data.questions.length === 0) {
+          throw new Error('AI returned 0 questions. Try shorter text, click Clean, or switch provider.');
+        }
         const withIds = data.questions.map((q: any) => ({ ...q, id: generateId() }));
         setQuestions(prev => ({ ...prev, [activeSection]: [...prev[activeSection], ...withIds] }));
         setAiText('');
-        setAiError('✅ Added ' + withIds.length + ' questions!');
-        setTimeout(() => setAiError(''), 3000);
+        const extra =
+          data.usedFallback && data.notice ? '\n' + data.notice : '';
+        setAiError('✅ Added ' + withIds.length + ' questions!' + extra);
+        setTimeout(() => setAiError(''), data.usedFallback ? 6000 : 3000);
+      } else {
+        throw new Error('Invalid AI response from server.');
       }
     } catch (e: any) {
       setAiError(e.message || 'Generation failed. Please try again.');
