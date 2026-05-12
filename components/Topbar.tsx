@@ -18,59 +18,36 @@ export default function Topbar({ tab, setTab, totalQuestions, onPrint }: TopbarP
   ]
 
   return (
-    // ADDED: Wrapper with 'no-print' class to hide this during PDF export
-    <div className="no-print">
-      <div style={{
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-        padding: '0 32px',
-        display: 'flex',
-        alignItems: 'stretch',
-        justifyContent: 'space-between',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.3)',
-        position: 'sticky', top: 0, zIndex: 100,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 0' }}>
-          <div style={{
-            width: '38px', height: '38px', borderRadius: '8px',
-            background: 'linear-gradient(135deg, #e2b96a, #c9953a)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '20px',
-          }}>📝</div>
+    <header className="pc-topbar no-print">
+      <div className="pc-topbar-inner">
+        <div className="pc-brand">
+          <div className="pc-brand-mark">P</div>
           <div>
-            <div style={{ color: '#e2b96a', fontFamily: "'Playfair Display', Georgia, serif", fontSize: '20px', fontWeight: '700' }}>PaperCraft</div>
-            <div style={{ color: '#8899aa', fontSize: '10px', letterSpacing: '2px' }}>SCHOOL EXAM GENERATOR</div>
+            <div className="pc-brand-title">PaperCraft</div>
+            <div className="pc-brand-subtitle">Modern Exam Workspace</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-          {tabs.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{
-              padding: '10px 24px',
-              background: tab === t.id ? 'rgba(226,185,106,0.1)' : 'transparent',
-              color: tab === t.id ? '#e2b96a' : '#8899aa',
-              border: 'none', cursor: 'pointer',
-              fontFamily: "'Playfair Display', Georgia, serif",
-              fontSize: '13px', fontWeight: tab === t.id ? '700' : '400',
-              borderBottom: tab === t.id ? '2px solid #e2b96a' : '2px solid transparent',
-              transition: 'all 0.2s',
-            }}>{t.label}</button>
+        <nav className="pc-tabnav" aria-label="Primary">
+          {tabs.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTab(item.id)}
+              className={`pc-tab-button${tab === item.id ? ' active' : ''}`}
+            >
+              {item.label}
+            </button>
           ))}
-        </div>
+        </nav>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ color: '#8899aa', fontSize: '12px', fontFamily: "'DM Mono', monospace" }}>
-            {totalQuestions} Q added
-          </div>
-          <button onClick={onPrint} style={{
-            padding: '8px 22px', borderRadius: '5px',
-            background: 'linear-gradient(135deg, #e2b96a, #c9953a)',
-            color: '#1a1a2e', border: 'none', cursor: 'pointer',
-            fontWeight: '700', fontSize: '13px',
-          }}>
-            🖨 Print / PDF
+        <div className="pc-topbar-actions">
+          <div className="pc-meta-chip">{totalQuestions} questions added</div>
+          <button type="button" onClick={onPrint} className="pc-button-secondary">
+            Export / Print
           </button>
         </div>
       </div>
-    </div>
+    </header>
   )
 }

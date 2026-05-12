@@ -40,27 +40,28 @@ export default function Home() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#f5f0e6' }}>
+    <main className="pc-page-shell">
       <Topbar tab={tab} setTab={setTab} totalQuestions={totalQuestions} onPrint={handlePrint} />
-
-      {tab === 'settings' && (
-        <SettingsPanel meta={meta} onChange={setMeta} onNext={() => setTab('editor')} />
-      )}
-      {tab === 'editor' && (
-        <EditorPanel questions={questions} setQuestions={setQuestions} meta={meta} setMeta={setMeta} />
-      )}
-      {tab === 'design' && (
-        <DesignPanel
-          meta={meta}
-          layout={layout}
-          questions={questions}
-          onMetaChange={setMeta}
-          onLayoutChange={setLayout}
-        />
-      )}
-      {tab === 'preview' && (
-        <PaperPreview meta={meta} layout={layout} questions={questions} />
-      )}
+      <div className="pc-page-inner">
+        {tab === 'settings' && (
+          <SettingsPanel meta={meta} onChange={setMeta} onNext={() => setTab('editor')} />
+        )}
+        {tab === 'editor' && (
+          <EditorPanel questions={questions} setQuestions={setQuestions} meta={meta} setMeta={setMeta} />
+        )}
+        {tab === 'design' && (
+          <DesignPanel
+            meta={meta}
+            layout={layout}
+            questions={questions}
+            onMetaChange={setMeta}
+            onLayoutChange={setLayout}
+          />
+        )}
+        {tab === 'preview' && (
+          <PaperPreview meta={meta} layout={layout} questions={questions} />
+        )}
+      </div>
     </main>
   )
 }
