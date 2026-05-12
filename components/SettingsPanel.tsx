@@ -26,49 +26,23 @@ export default function SettingsPanel({ meta, onChange, onNext }: Props) {
   }
 
   return (
-    <div style={{ maxWidth: '880px', margin: '0 auto' }}>
-      <section className="pc-glass-card" style={{ marginBottom: '24px' }}>
-        <div className="pc-card-inner" style={{ textAlign: 'center' }}>
-          <div className="pc-kicker">Header Small Logo &amp; Sample</div>
+    <div className="max-w-[800px] mx-auto space-y-lg">
+      {/* Upload Area Section */}
+      <section className="glass-card rounded-xl p-lg relative overflow-hidden staple-accent hover:-translate-y-1 hover:shadow-xl transition-all duration-300 ease-out animate-in fade-in slide-in-from-bottom-8 reveal-delay-1">
+        <div className="text-center">
+          <h3 className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant mb-md">Header Small Logo &amp; Sample</h3>
           <button
             type="button"
             onClick={() => logoRef.current?.click()}
-            className="pc-button-ghost"
-            style={{
-              width: '100%',
-              minHeight: '180px',
-              borderRadius: '22px',
-              background: 'rgba(248, 243, 233, 0.72)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'column',
-              gap: '10px',
-            }}
+            className="w-full border-2 border-dashed border-outline-variant rounded-xl p-xl flex flex-col items-center justify-center cursor-pointer hover:bg-surface-container-low transition-colors group"
           >
             {meta.logo ? (
               <img src={meta.logo} alt="logo preview" style={{ maxHeight: '112px', maxWidth: '100%', objectFit: 'contain' }} />
             ) : (
               <>
-                <div
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '16px',
-                    background: 'rgba(26, 26, 46, 0.08)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontFamily: 'Montserrat, sans-serif',
-                    fontWeight: 700,
-                    color: '#1a1a2e',
-                  }}
-                >
-                  UP
-                </div>
-                <div style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '18px', fontWeight: 600, color: '#1a1a2e' }}>
-                  Click to upload header image
-                </div>
-                <div style={{ color: '#47464c', fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: '12px' }}>PNG / JPG</div>
+                <span className="material-symbols-outlined text-4xl text-outline mb-sm group-hover:scale-110 transition-transform">upload_file</span>
+                <p className="font-body-md text-body-md text-on-surface-variant">Click to upload header image</p>
+                <span className="font-caption text-caption text-outline-variant mt-xs">PNG / JPG (Max 5MB)</span>
               </>
             )}
           </button>
@@ -76,57 +50,57 @@ export default function SettingsPanel({ meta, onChange, onNext }: Props) {
         </div>
       </section>
 
-      <section className="pc-glass-card">
-        <div className="pc-card-inner">
-          <div className="pc-kicker">Exam Details</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-            <div>
-              <div className="pc-title" style={{ fontSize: '28px' }}>Paper Setup</div>
-              <div className="pc-subtitle">Build the header details, topic coverage, and instructions before moving into question drafting.</div>
-            </div>
-            <div className="pc-chip">Setup Workspace</div>
-          </div>
+      {/* Exam Details Section */}
+      <section className="glass-card rounded-xl p-lg space-y-lg staple-accent hover:-translate-y-1 hover:shadow-xl transition-all duration-300 ease-out animate-in fade-in slide-in-from-bottom-8 reveal-delay-2">
+        <div className="flex items-center gap-sm mb-md border-b border-outline-variant/20 pb-base">
+          <span className="material-symbols-outlined text-secondary">description</span>
+          <h2 className="font-headline-md text-headline-md text-primary">EXAM DETAILS</h2>
+        </div>
 
-          <div className="pc-form-grid" style={{ marginBottom: '24px' }}>
-            <div className="pc-field">
-              <label className="pc-field-label">Date</label>
-              <input className="pc-underlined-input" value={meta.examDate || ''} onChange={set('examDate')} placeholder="e.g. 23/10/2025" />
-            </div>
-            <div className="pc-field">
-              <label className="pc-field-label">Test Series</label>
-              <input className="pc-underlined-input" value={meta.testSeries || ''} onChange={set('testSeries')} placeholder="e.g. End Nov 2023.23" />
-            </div>
-            <div className="pc-field">
-              <label className="pc-field-label">Maximum Marks</label>
-              <input className="pc-underlined-input" value={meta.maxMarks} onChange={set('maxMarks')} placeholder="80" />
-            </div>
-            <div className="pc-field">
-              <label className="pc-field-label">Time Allowed</label>
-              <input className="pc-underlined-input" value={meta.time} onChange={set('time')} placeholder="3 Hours" />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+          {/* Date */}
+          <div className="space-y-xs">
+            <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Date</label>
+            <input className="w-full bg-transparent border-b-2 border-outline-variant focus:border-[#0070FF] focus:ring-0 transition-all py-sm px-xs placeholder:text-outline-variant font-body-md text-body-md hover:border-outline focus:scale-[1.01] transition-all duration-200" value={meta.examDate || ''} onChange={set('examDate')} placeholder="e.g. 23/10/2025" type="text" />
           </div>
+          {/* Test Series */}
+          <div className="space-y-xs">
+            <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Test Series</label>
+            <input className="w-full bg-transparent border-b-2 border-outline-variant focus:border-[#0070FF] focus:ring-0 transition-all py-sm px-xs placeholder:text-outline-variant font-body-md text-body-md hover:border-outline focus:scale-[1.01] transition-all duration-200" value={meta.testSeries || ''} onChange={set('testSeries')} placeholder="e.g. End Nov 2023.23" type="text" />
+          </div>
+          {/* Max Marks */}
+          <div className="space-y-xs">
+            <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Maximum Marks</label>
+            <input className="w-full bg-transparent border-b-2 border-outline-variant focus:border-[#0070FF] focus:ring-0 transition-all py-sm px-xs placeholder:text-outline-variant font-body-md text-body-md hover:border-outline focus:scale-[1.01] transition-all duration-200" value={meta.maxMarks} onChange={set('maxMarks')} placeholder="80" type="number" />
+          </div>
+          {/* Time */}
+          <div className="space-y-xs">
+            <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Time Allowed</label>
+            <input className="w-full bg-transparent border-b-2 border-outline-variant focus:border-[#0070FF] focus:ring-0 transition-all py-sm px-xs placeholder:text-outline-variant font-body-md text-body-md hover:border-outline focus:scale-[1.01] transition-all duration-200" value={meta.time} onChange={set('time')} placeholder="3 Hours" type="text" />
+          </div>
+        </div>
 
-          <div className="pc-field" style={{ marginBottom: '24px' }}>
-            <label className="pc-field-label">Topics Covered</label>
-            <textarea
-              className="pc-textarea"
-              value={meta.topicsCovered || ''}
-              onChange={set('topicsCovered')}
-              rows={4}
-              placeholder="Write one topic per line"
-            />
-          </div>
+        {/* Topics Covered */}
+        <div className="space-y-xs pt-base">
+          <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Topics Covered</label>
+          <textarea className="w-full bg-surface-container-low border-2 border-transparent focus:border-[#0070FF] focus:ring-0 rounded-lg transition-all p-md placeholder:text-outline-variant font-body-md text-body-md hover:bg-surface-container-high focus:scale-[1.01] transition-all duration-200" value={meta.topicsCovered || ''} onChange={set('topicsCovered')} placeholder="Write one topic per line" rows={4} />
+        </div>
 
-          <div className="pc-field">
-            <label className="pc-field-label">Instructions (One per line)</label>
-            <textarea className="pc-textarea" value={meta.instructions} onChange={set('instructions')} rows={8} />
-          </div>
+        {/* Instructions */}
+        <div className="space-y-xs pt-base">
+          <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Instructions (One per line)</label>
+          <textarea className="w-full bg-surface-container-low border-2 border-transparent focus:border-[#0070FF] focus:ring-0 rounded-lg transition-all p-md font-body-md text-body-md hover:bg-surface-container-high focus:scale-[1.01] transition-all duration-200" value={meta.instructions} onChange={set('instructions')} rows={8} />
         </div>
       </section>
 
-      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '28px' }}>
-        <button type="button" onClick={onNext} className="pc-button-primary" style={{ padding: '16px 34px', fontSize: '15px' }}>
-          Continue to Question Editor
+      {/* Footer CTA Area */}
+      <div className="flex justify-center pt-lg pb-xl">
+        <button type="button" onClick={onNext} className="group relative px-xl py-md bg-primary-container text-on-primary-fixed rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#FFD400] to-[#0070FF] opacity-0 group-hover:opacity-20 transition-opacity"></div>
+          <div className="flex items-center gap-md relative z-10">
+            <span className="font-headline-md text-headline-md">Continue to Question Editor</span>
+            <span className="material-symbols-outlined text-3xl group-hover:translate-x-2 transition-transform">arrow_forward</span>
+          </div>
         </button>
       </div>
     </div>
