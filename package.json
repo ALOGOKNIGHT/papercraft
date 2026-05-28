@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
+    "@fontsource/inter": "^5.2.8",
     "@google/generative-ai": "^0.24.1",
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/forms": "^0.5.11",
     "clsx": "^2.1.1",
     "docx": "^8.5.0",
     "file-saver": "^2.0.5",

@@ -82,7 +82,7 @@ Return the data as a single JSON object.`;
       // Default: Gemini
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
+        model: 'gemini-3.5-flash',
         generationConfig: { responseMimeType: "application/json" }
       });
       const result = await model.generateContent(prompt);

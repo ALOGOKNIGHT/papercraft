@@ -68,4 +68,6 @@ export const DEFAULT_LAYOUT = {
   watermarkOpacity: 0.1,
   watermarkRotation: -45,
   watermarkScale: 100,
+  watermarkXOffset: 0,
+  watermarkYOffset: 0,
 }

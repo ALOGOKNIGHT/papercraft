@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { PaperMeta } from '@/lib/types'
 
 interface Props {
@@ -11,6 +11,92 @@ interface Props {
 
 export default function SettingsPanel({ meta, onChange, onNext }: Props) {
   const logoRef = useRef<HTMLInputElement>(null)
+  const topicsRef = useRef<HTMLTextAreaElement>(null)
+  const instRef = useRef<HTMLTextAreaElement>(null)
+
+  const insertBoldText = (textareaRef: React.RefObject<HTMLTextAreaElement>, key: keyof PaperMeta) => {
+    const el = textareaRef.current
+    if (!el) return
+
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const text = el.value
+
+    const selectedText = text.substring(start, end)
+    const before = text.substring(0, start)
+    const after = text.substring(end)
+
+    const replacement = `**${selectedText || 'bold text'}**`
+    const newValue = before + replacement + after
+
+    onChange({ ...meta, [key]: newValue })
+
+    setTimeout(() => {
+      el.focus()
+      const newCursorPos = start + 2 + (selectedText ? selectedText.length : 9)
+      el.setSelectionRange(newCursorPos, newCursorPos)
+    }, 50)
+  }
+
+  const [toastMsg, setToastMsg] = useState('')
+
+  const triggerToast = (msg: string) => {
+    setToastMsg(msg)
+  }
+
+  useEffect(() => {
+    if (toastMsg) {
+      const timer = setTimeout(() => setToastMsg(''), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [toastMsg])
+
+  const removeLogoBackground = () => {
+    if (!meta.logo) return
+
+    triggerToast('✦ Removing logo background and converting to transparent PNG...')
+
+    const img = new Image()
+    img.src = meta.logo
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      ctx.drawImage(img, 0, 0)
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const data = imgData.data
+
+      // Detect background color from corners (top-left pixel)
+      const rRef = data[0]
+      const gRef = data[1]
+      const bRef = data[2]
+
+      // Turn solid/near-solid background pixels transparent
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i]
+        const g = data[i+1]
+        const b = data[i+2]
+
+        const distToRef = Math.sqrt((r - rRef) ** 2 + (g - gRef) ** 2 + (b - bRef) ** 2)
+        const distToWhite = Math.sqrt((r - 255) ** 2 + (g - 255) ** 2 + (b - 255) ** 2)
+
+        if (distToRef < 50 || distToWhite < 50) {
+          data[i+3] = 0 // transparent
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0)
+      const transparentBase64 = canvas.toDataURL('image/png')
+      onChange({ ...meta, logo: transparentBase64 })
+      triggerToast('✓ Logo background successfully removed!')
+    }
+    img.onerror = () => {
+      triggerToast('✕ Failed to process logo background removal.')
+    }
+  }
 
   const set =
     (key: keyof PaperMeta) =>
@@ -26,83 +112,291 @@ export default function SettingsPanel({ meta, onChange, onNext }: Props) {
   }
 
   return (
-    <div className="max-w-[800px] mx-auto space-y-lg">
-      {/* Upload Area Section */}
-      <section className="glass-card rounded-xl p-lg relative overflow-hidden staple-accent hover:-translate-y-1 hover:shadow-xl transition-all duration-300 ease-out animate-in fade-in slide-in-from-bottom-8 reveal-delay-1">
-        <div className="text-center">
-          <h3 className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant mb-md">Header Small Logo &amp; Sample</h3>
-          <button
-            type="button"
-            onClick={() => logoRef.current?.click()}
-            className="w-full border-2 border-dashed border-outline-variant rounded-xl p-xl flex flex-col items-center justify-center cursor-pointer hover:bg-surface-container-low transition-colors group"
-          >
-            {meta.logo ? (
-              <img src={meta.logo} alt="logo preview" style={{ maxHeight: '112px', maxWidth: '100%', objectFit: 'contain' }} />
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-4xl text-outline mb-sm group-hover:scale-110 transition-transform">upload_file</span>
-                <p className="font-body-md text-body-md text-on-surface-variant">Click to upload header image</p>
-                <span className="font-caption text-caption text-outline-variant mt-xs">PNG / JPG (Max 5MB)</span>
-              </>
-            )}
-          </button>
-          <input ref={logoRef} type="file" accept="image/*" onChange={handleLogo} style={{ display: 'none' }} />
-        </div>
-      </section>
+    <div style={{ maxWidth: 800, margin: '0 auto' }} className="space-y-6 animate-fadeup delay-1">
 
-      {/* Exam Details Section */}
-      <section className="glass-card rounded-xl p-lg space-y-lg staple-accent hover:-translate-y-1 hover:shadow-xl transition-all duration-300 ease-out animate-in fade-in slide-in-from-bottom-8 reveal-delay-2">
-        <div className="flex items-center gap-sm mb-md border-b border-outline-variant/20 pb-base">
-          <span className="material-symbols-outlined text-secondary">description</span>
-          <h2 className="font-headline-md text-headline-md text-primary">EXAM DETAILS</h2>
+      {/* ── Card 1: Header logo upload ─────────────────────────── */}
+      <div className="pc-cyber-card">
+        <p className="pc-cyber-kicker">HEADER SMALL LOGO &amp; SAMPLE</p>
+
+        <div
+          className="pc-cyber-upload"
+          onClick={() => logoRef.current?.click()}
+        >
+          {meta.logo ? (
+            <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <img
+                src={meta.logo}
+                alt="logo preview"
+                style={{ maxHeight: 110, maxWidth: '100%', objectFit: 'contain', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '6px' }}
+              />
+              
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', zIndex: 10 }}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    removeLogoBackground()
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #0ea5e9, #8b5cf6)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 0 10px rgba(14, 165, 233, 0.3)',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                  onMouseOut={(e) => (e.currentTarget.style.transform = 'none')}
+                  title="Remove white/solid background using canvas extraction"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>auto_fix_high</span>
+                  <span>Remove Background</span>
+                </button>
+              </div>
+
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange({ ...meta, logo: null });
+                }}
+                style={{
+                  position: 'absolute',
+                  top: -10,
+                  right: -10,
+                  background: 'rgba(239, 68, 68, 0.9)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 24,
+                  height: 24,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  zIndex: 20
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <>
+              <span className="material-symbols-outlined pc-cyber-upload-icon">cloud_upload</span>
+              <p>Click or drag to upload school logo</p>
+              <span>PNG / JPG (Recommended: 200×200px)</span>
+            </>
+          )}
+        </div>
+        <input
+          ref={logoRef}
+          type="file"
+          accept="image/*"
+          onChange={handleLogo}
+          style={{ display: 'none' }}
+        />
+      </div>
+
+      {/* ── Card 2: Exam details ───────────────────────────────── */}
+      <div className="pc-cyber-card">
+        {/* Accent Title */}
+        <div className="pc-cyber-title-wrapper">
+          <div className="pc-cyber-title-bar" />
+          <h2 className="pc-cyber-title">Exam Details</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-          {/* Date */}
-          <div className="space-y-xs">
-            <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Date</label>
-            <input className="w-full bg-transparent border-b-2 border-outline-variant focus:border-[#0070FF] focus:ring-0 transition-all py-sm px-xs placeholder:text-outline-variant font-body-md text-body-md hover:border-outline focus:scale-[1.01] transition-all duration-200" value={meta.examDate || ''} onChange={set('examDate')} placeholder="e.g. 23/10/2025" type="text" />
+        {/* 2x2 Form grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 mb-6">
+          <div className="pc-cyber-field">
+            <label className="pc-cyber-label">Date</label>
+            <input
+              className="pc-cyber-input"
+              type="text"
+              placeholder="e.g. 23/10/2025"
+              value={meta.examDate || ''}
+              onChange={set('examDate')}
+            />
+            <span className="material-symbols-outlined pc-cyber-input-icon">event</span>
           </div>
-          {/* Test Series */}
-          <div className="space-y-xs">
-            <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Test Series</label>
-            <input className="w-full bg-transparent border-b-2 border-outline-variant focus:border-[#0070FF] focus:ring-0 transition-all py-sm px-xs placeholder:text-outline-variant font-body-md text-body-md hover:border-outline focus:scale-[1.01] transition-all duration-200" value={meta.testSeries || ''} onChange={set('testSeries')} placeholder="e.g. End Nov 2023.23" type="text" />
+
+          <div className="pc-cyber-field">
+            <label className="pc-cyber-label">Test Series</label>
+            <input
+              className="pc-cyber-input"
+              type="text"
+              placeholder="e.g. Mid-Term 2024"
+              value={meta.testSeries || ''}
+              onChange={set('testSeries')}
+            />
+            <span className="material-symbols-outlined pc-cyber-input-icon">library_books</span>
           </div>
-          {/* Max Marks */}
-          <div className="space-y-xs">
-            <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Maximum Marks</label>
-            <input className="w-full bg-transparent border-b-2 border-outline-variant focus:border-[#0070FF] focus:ring-0 transition-all py-sm px-xs placeholder:text-outline-variant font-body-md text-body-md hover:border-outline focus:scale-[1.01] transition-all duration-200" value={meta.maxMarks} onChange={set('maxMarks')} placeholder="80" type="number" />
+
+          <div className="pc-cyber-field">
+            <label className="pc-cyber-label">Maximum Marks</label>
+            <input
+              className="pc-cyber-input"
+              type="text"
+              placeholder="80"
+              value={meta.maxMarks}
+              onChange={set('maxMarks')}
+            />
+            <span className="material-symbols-outlined pc-cyber-input-icon">star</span>
           </div>
-          {/* Time */}
-          <div className="space-y-xs">
-            <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Time Allowed</label>
-            <input className="w-full bg-transparent border-b-2 border-outline-variant focus:border-[#0070FF] focus:ring-0 transition-all py-sm px-xs placeholder:text-outline-variant font-body-md text-body-md hover:border-outline focus:scale-[1.01] transition-all duration-200" value={meta.time} onChange={set('time')} placeholder="3 Hours" type="text" />
+
+          <div className="pc-cyber-field">
+            <label className="pc-cyber-label">Time Allowed</label>
+            <input
+              className="pc-cyber-input"
+              type="text"
+              placeholder="3 Hours"
+              value={meta.time}
+              onChange={set('time')}
+            />
+            <span className="material-symbols-outlined pc-cyber-input-icon">schedule</span>
           </div>
         </div>
 
         {/* Topics Covered */}
-        <div className="space-y-xs pt-base">
-          <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Topics Covered</label>
-          <textarea className="w-full bg-surface-container-low border-2 border-transparent focus:border-[#0070FF] focus:ring-0 rounded-lg transition-all p-md placeholder:text-outline-variant font-body-md text-body-md hover:bg-surface-container-high focus:scale-[1.01] transition-all duration-200" value={meta.topicsCovered || ''} onChange={set('topicsCovered')} placeholder="Write one topic per line" rows={4} />
+        <div className="pc-cyber-field mb-6">
+          <label className="pc-cyber-label">Topics Covered</label>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+            {/* Formatting Toolbar */}
+            <div style={{ display: 'flex', gap: '8px', background: '#090d16', border: '1px solid rgba(56, 189, 248, 0.12)', borderBottom: 'none', padding: '6px 12px', borderRadius: '8px 8px 0 0', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => insertBoldText(topicsRef, 'topicsCovered')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.08)')}
+                onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+                title="Bold Text"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#00f2fe' }}>format_bold</span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc' }}>Bold</span>
+              </button>
+            </div>
+            <textarea
+              ref={topicsRef}
+              className="pc-cyber-textarea"
+              style={{ borderRadius: '0 0 8px 8px', borderTop: 'none' }}
+              placeholder="Write one topic per line... Highlight text and click 'Bold' above."
+              rows={3}
+              value={meta.topicsCovered || ''}
+              onChange={set('topicsCovered')}
+            />
+          </div>
+          <span style={{ fontSize: '11px', color: '#64748b', marginTop: '6px', display: 'block' }}>
+            Tip: Highlight text and click <b>Bold</b> above.
+          </span>
         </div>
 
         {/* Instructions */}
-        <div className="space-y-xs pt-base">
-          <label className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant block">Instructions (One per line)</label>
-          <textarea className="w-full bg-surface-container-low border-2 border-transparent focus:border-[#0070FF] focus:ring-0 rounded-lg transition-all p-md font-body-md text-body-md hover:bg-surface-container-high focus:scale-[1.01] transition-all duration-200" value={meta.instructions} onChange={set('instructions')} rows={8} />
-        </div>
-      </section>
-
-      {/* Footer CTA Area */}
-      <div className="flex justify-center pt-lg pb-xl">
-        <button type="button" onClick={onNext} className="group relative px-xl py-md bg-primary-container text-on-primary-fixed rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#FFD400] to-[#0070FF] opacity-0 group-hover:opacity-20 transition-opacity"></div>
-          <div className="flex items-center gap-md relative z-10">
-            <span className="font-headline-md text-headline-md">Continue to Question Editor</span>
-            <span className="material-symbols-outlined text-3xl group-hover:translate-x-2 transition-transform">arrow_forward</span>
+        <div className="pc-cyber-field">
+          <label className="pc-cyber-label">Instructions (one per line)</label>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+            {/* Formatting Toolbar */}
+            <div style={{ display: 'flex', gap: '8px', background: '#090d16', border: '1px solid rgba(56, 189, 248, 0.12)', borderBottom: 'none', padding: '6px 12px', borderRadius: '8px 8px 0 0', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => insertBoldText(instRef, 'instructions')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.08)')}
+                onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+                title="Bold Text"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#00f2fe' }}>format_bold</span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc' }}>Bold</span>
+              </button>
+            </div>
+            <textarea
+              ref={instRef}
+              className="pc-cyber-textarea"
+              style={{ borderRadius: '0 0 8px 8px', borderTop: 'none' }}
+              placeholder="Write instructions... Highlight text and click 'Bold' above."
+              rows={10}
+              value={meta.instructions}
+              onChange={set('instructions')}
+            />
           </div>
-        </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+            <span style={{ fontSize: '11px', color: '#64748b' }}>
+              Tip: Highlight text and click <b>Bold</b> above.
+            </span>
+            <div className="pc-markdown-badge" style={{ margin: 0 }}>MARKDOWN SUPPORTED</div>
+          </div>
+        </div>
       </div>
+
+      {/* ── Continue Button ────────────────────────────────────── */}
+      <button type="button" onClick={onNext} className="pc-cyber-btn-outline">
+        <div className="pc-cyber-btn-outline-inner">
+          <span style={{ textAlign: 'center' }}>
+            CONTINUE TO QUESTION<br />EDITOR
+          </span>
+          <span className="material-symbols-outlined pc-cyber-btn-arrow">east</span>
+        </div>
+      </button>
+
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div 
+          className="pc-toast active animate-fadeup" 
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            background: 'rgba(7, 12, 21, 0.95)',
+            border: '1px solid #00f2fe',
+            boxShadow: '0 0 15px rgba(0, 242, 254, 0.3)',
+            borderRadius: '10px',
+            padding: '12px 24px',
+            color: '#fff',
+            fontSize: '13px',
+            fontWeight: 600,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ color: '#00f2fe', fontSize: '18px' }}>info</span>
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
     </div>
   )
 }

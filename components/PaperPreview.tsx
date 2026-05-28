@@ -7,6 +7,22 @@ import MathText from './MathText'
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType } from 'docx'
 import { saveAs } from 'file-saver'
 
+// Helper function to render bold text marked with double asterisks e.g. **text**
+function renderFormattedText(text: string) {
+  if (!text) return null
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i}>{part.slice(2, -2)}</strong>
+        }
+        return part
+      })}
+    </>
+  )
+}
+
 interface Props {
   meta: PaperMeta
   layout: LayoutSettings
@@ -20,7 +36,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
   let globalNum = 1
 
   const exportToWord = () => {
-    const allQs = SECTIONS.flatMap((sec) => questions[sec.id] || [])
+    const allQs = Object.keys(questions).sort().flatMap((secId) => questions[secId] || [])
 
     if (allQs.length === 0) {
       alert('No questions available to export.')
@@ -88,8 +104,8 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                       ]
                     : []),
                 ]),
-            ...SECTIONS.flatMap((sec) => {
-              const qs = questions[sec.id] || []
+            ...Object.keys(questions).sort().flatMap((secId) => {
+              const qs = questions[secId] || []
               if (qs.length === 0) return []
 
               return [
@@ -101,7 +117,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                     left: { style: 'single', size: 12, color: '000000' },
                     right: { style: 'single', size: 12, color: '000000' },
                   },
-                  children: [new TextRun({ text: ` ${(meta.customSectionNames?.[sec.id] || sec.label).toUpperCase()} `, bold: true, size: 28 })],
+                  children: [new TextRun({ text: ` ${(meta.customSectionNames?.[secId] || `Section ${secId}`).toUpperCase()} `, bold: true, size: 28 })],
                 }),
                 new Paragraph({ text: '' }),
                 new Table({
@@ -112,12 +128,12 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                       if (q.type === 'MCQ' && q.options && q.options.length > 0) {
                         cellParagraphs.push(new Paragraph({ text: '' }))
                         if (layout.mcqLayout === '4-col') {
-                          cellParagraphs.push(new Paragraph({ text: `(a) ${q.options[0]}      (b) ${q.options[1]}      (c) ${q.options[2]}      (d) ${q.options[3]}` }))
+                          cellParagraphs.push(new Paragraph({ text: `A) ${q.options[0]}      B) ${q.options[1]}      C) ${q.options[2]}      D) ${q.options[3]}` }))
                         } else if (layout.mcqLayout === '1-col') {
-                          q.options.forEach((opt, i) => cellParagraphs.push(new Paragraph({ text: `(${String.fromCharCode(97 + i)}) ${opt}` })))
+                          q.options.forEach((opt, i) => cellParagraphs.push(new Paragraph({ text: `${String.fromCharCode(65 + i)}) ${opt}` })))
                         } else {
-                          cellParagraphs.push(new Paragraph({ text: `(a) ${q.options[0]}            (b) ${q.options[1]}` }))
-                          cellParagraphs.push(new Paragraph({ text: `(c) ${q.options[2]}            (d) ${q.options[3]}` }))
+                          cellParagraphs.push(new Paragraph({ text: `A) ${q.options[0]}            B) ${q.options[1]}` }))
+                          cellParagraphs.push(new Paragraph({ text: `C) ${q.options[2]}            D) ${q.options[3]}` }))
                         }
                       }
 
@@ -183,6 +199,14 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
             top: 50% !important;
             left: 50% !important;
           }
+          .unified-columns {
+            column-count: 2 !important;
+            column-fill: auto !important;
+            -webkit-column-fill: auto !important;
+            -moz-column-fill: auto !important;
+            column-gap: 28px !important;
+            column-rule: 1px dashed rgba(0,0,0,0.1) !important;
+          }
         }
       `,
         }}
@@ -239,8 +263,8 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
             alt="watermark"
             style={{
               position: 'absolute',
-              top: '148.5mm',
-              left: '50%',
+              top: `calc(148.5mm + ${layout.watermarkYOffset || 0}mm)`,
+              left: `calc(50% + ${layout.watermarkXOffset || 0}mm)`,
               transform: `translate(-50%, -50%) rotate(${layout.watermarkRotation}deg) scale(${layout.watermarkScale / 100})`,
               opacity: layout.watermarkOpacity,
               pointerEvents: 'none',
@@ -291,11 +315,11 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                       if (parts.length > 1) {
                         return (
                           <div key={i}>
-                            <b>{parts[0]}:</b> {parts.slice(1).join(':')}
+                            <b>{renderFormattedText(parts[0])}:</b> {renderFormattedText(parts.slice(1).join(':'))}
                           </div>
                         )
                       }
-                      return <div key={i}>{line}</div>
+                      return <div key={i}>{renderFormattedText(line)}</div>
                     })
                   ) : (
                     <>
@@ -318,7 +342,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                   <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>General Instrutions :</div>
                   <div>
                     {meta.instructions.split('\n').filter(Boolean).map((line, i) => (
-                      <div key={i}>{line}</div>
+                      <div key={i}>{renderFormattedText(line)}</div>
                     ))}
                   </div>
                 </div>
@@ -327,15 +351,62 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
           )}
         </div>
 
-        {SECTIONS.map((sec) => {
-          const qs = questions[sec.id] || []
-          if (qs.length === 0) return null
+        {(() => {
+          const activeSections = Object.keys(questions).sort().filter(secId => (questions[secId] || []).length > 0)
+
+          if (activeSections.length === 0) {
+            return (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#999', fontFamily: 'inherit' }}>
+                No questions added yet. Please add questions in the Editor.
+              </div>
+            )
+          }
+
+          const firstSecId = activeSections[0]
+          const otherSecIds = activeSections.slice(1)
+
+          // Compile a flat list of direct children for the columns container
+          const columnItems: (
+            | { type: 'heading'; secId: string; title: string }
+            | { type: 'question'; q: any; globalIndex: number }
+          )[] = []
+
+          let globalQIndex = 1
+
+          // First section's questions go directly into the columns flow (its heading is rendered outside)
+          const firstSecQs = questions[firstSecId] || []
+          firstSecQs.forEach(q => {
+            columnItems.push({
+              type: 'question',
+              q,
+              globalIndex: globalQIndex++
+            })
+          })
+
+          // Subsequent sections and their questions
+          otherSecIds.forEach(secId => {
+            columnItems.push({
+              type: 'heading',
+              secId,
+              title: meta.customSectionNames?.[secId] || `Section ${secId}`
+            })
+
+            const secQs = questions[secId] || []
+            secQs.forEach(q => {
+              columnItems.push({
+                type: 'question',
+                q,
+                globalIndex: globalQIndex++
+              })
+            })
+          })
 
           const borderStr = layout.tableBorder === 'none' ? 'none' : `${layout.borderWidth}px ${layout.tableBorder} #000`
 
           return (
-            <div key={sec.id} style={{ breakInside: 'auto', marginBottom: `${layout.sectionSpacing}px` }}>
-              <div style={{ textAlign: 'center', marginBottom: '12px', zIndex: 1, position: 'relative' }}>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              {/* First Section Heading: Centered at full width above columns */}
+              <div style={{ textAlign: 'center', marginBottom: '20px', zIndex: 1, position: 'relative' }}>
                 <span
                   style={{
                     border: `${layout.tableBorder === 'none' ? 2 : Math.max(2, layout.borderWidth)}px ${layout.tableBorder === 'none' ? 'solid' : layout.tableBorder} #000`,
@@ -344,52 +415,111 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                     fontSize: `${layout.sectionTitleSize}px`,
                     display: 'inline-block',
                     borderRadius: '4px',
+                    textTransform: 'uppercase',
                   }}
                 >
-                  {(meta.customSectionNames?.[sec.id] || sec.label).toUpperCase()}
+                  {(meta.customSectionNames?.[firstSecId] || `Section ${firstSecId}`).toUpperCase()}
                 </span>
               </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', position: 'relative', zIndex: 1 }}>
-                <tbody>
-                  {qs.map((q) => (
-                    <tr key={q.id} style={{ breakInside: 'avoid' }}>
-                      <td style={{ width: `${layout.qNoWidth || 40}px`, border: borderStr, textAlign: 'center', verticalAlign: 'top', padding: `${layout.questionSpacing}px 10px`, fontWeight: '700' }}>
-                        Q.{globalNum++}.
-                      </td>
-                      <td style={{ border: borderStr, padding: `${layout.questionSpacing}px 15px`, verticalAlign: 'top' }}>
-                        <MathText content={q.text} />
 
-                        {q.type === 'MCQ' && q.options && q.options.length > 0 && (
-                          <div
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: layout.mcqLayout === '1-col' ? '1fr' : layout.mcqLayout === '4-col' ? '1fr 1fr 1fr 1fr' : '1fr 1fr',
-                              gap: '8px',
-                              marginTop: '10px',
-                            }}
-                          >
-                            {q.options.map((opt, i) => (
-                              <div key={i} style={{ display: 'flex', gap: '8px' }}>
-                                <span style={{ fontWeight: '700' }}>({String.fromCharCode(97 + i)})</span>
-                                <MathText content={opt} />
-                              </div>
-                            ))}
+              {/* Single Unified Two-Column Container */}
+              <div
+                className="unified-columns"
+                style={{
+                  columnCount: 2,
+                  columnFill: 'balance', // Screen preview defaults to balanced to display columns properly without page limits
+                  columnGap: '28px',
+                  columnRule: '1px dashed rgba(0,0,0,0.1)',
+                  width: '100%',
+                  position: 'relative',
+                  zIndex: 1,
+                  boxSizing: 'border-box'
+                }}
+              >
+                {columnItems.map((item, idx) => {
+                  if (item.type === 'heading') {
+                    return (
+                      <div
+                        key={`heading-${item.secId}`}
+                        style={{
+                          textAlign: 'center',
+                          marginTop: '20px',
+                          marginBottom: '16px',
+                          breakInside: 'avoid',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        <span
+                          style={{
+                            border: `${layout.tableBorder === 'none' ? 2 : Math.max(2, layout.borderWidth)}px ${layout.tableBorder === 'none' ? 'solid' : layout.tableBorder} #000`,
+                            padding: '6px 20px',
+                            fontWeight: '900',
+                            fontSize: `${layout.sectionTitleSize}px`,
+                            display: 'inline-block',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {item.title.toUpperCase()}
+                        </span>
+                      </div>
+                    )
+                  } else {
+                    const { q, globalIndex } = item
+                    return (
+                      <div
+                        key={q.id}
+                        style={{
+                          display: 'flex',
+                          gap: '10px',
+                          alignItems: 'flex-start',
+                          padding: `${layout.questionSpacing}px 0`,
+                          borderBottom: borderStr,
+                          breakInside: 'avoid',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        <span style={{ fontWeight: '700', flexShrink: 0, minWidth: '24px', textAlign: 'right' }}>
+                          {globalIndex}.
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: `${layout.questionFontSize}px`, lineHeight: layout.lineHeight, color: '#000', fontWeight: 500 }}>
+                            <MathText content={q.text} />
                           </div>
-                        )}
 
-                        {q.image && (
-                          <div style={{ marginTop: '15px', textAlign: 'center' }}>
-                            <img src={q.image} alt="diagram" style={{ maxWidth: '100%', maxHeight: '180px' }} />
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          {q.type === 'MCQ' && q.options && q.options.length > 0 && (
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: layout.mcqLayout === '1-col' ? '1fr' : layout.mcqLayout === '4-col' ? '1fr 1fr 1fr 1fr' : '1fr 1fr',
+                                gap: '6px',
+                                marginTop: '8px',
+                                fontSize: `${layout.questionFontSize - 1}px`,
+                              }}
+                            >
+                              {q.options.map((opt: string, i: number) => (
+                                <div key={i} style={{ display: 'flex', gap: '4px', alignItems: 'baseline', color: '#000' }}>
+                                  <span style={{ fontWeight: '700' }}>{String.fromCharCode(65 + i)})</span>
+                                  <MathText content={opt} />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {q.image && (
+                            <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                              <img src={q.image} alt="diagram" style={{ maxWidth: '100%', maxHeight: '140px', objectFit: 'contain' }} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  }
+                })}
+              </div>
             </div>
           )
-        })}
+        })()}
       </div>
     </div>
   )

@@ -15,6 +15,7 @@ export interface Question {
   hasOr: boolean
   orText: string
   image?: string          // base64 for diagram
+  correctIndex?: number   // for MCQ correct answer tracking
 }
 
 export interface SectionConfig {
@@ -23,16 +24,6 @@ export interface SectionConfig {
   description: string
   defaultMarks: number
   defaultType: QuestionType
-}
-// lib/types.ts
-export interface Question {
-  id: string;
-  text: string;
-  type: QuestionType;
-  options: string[];
-  marks: number;
-  image?: string; // Add this line
-  // ... other fields
 }
 export interface PaperMeta {
   schoolName: string
@@ -100,4 +91,6 @@ export interface LayoutSettings {
   watermarkOpacity: number
   watermarkRotation: number
   watermarkScale: number
+  watermarkXOffset: number
+  watermarkYOffset: number
 }

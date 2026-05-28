@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       mimeType, 
       mode, 
       provider = 'gemini', // New: Default to Gemini
-      modelName = 'gemini-2.5-flash-lite' // New: Use high-limit model by default
+      modelName = 'gemini-3.5-flash-lite' // New: Use high-limit model by default
     } = await req.json()
 
     if (!imageBase64) {
