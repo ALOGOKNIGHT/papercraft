@@ -47,6 +47,7 @@ export const DEFAULT_LAYOUT = {
   marginRight: 20,
   logoSize: 64,
   logoPosition: 'center' as const,
+  logoAddressGap: 10,
   schoolNameSize: 18,
   examTitleSize: 15,
   sectionTitleSize: 15,

@@ -456,6 +456,8 @@ export default function DesignPanel({ meta, layout, questions, onLayoutChange }:
               <SliderRow label="Q.NO. Column Width" value={layout.qNoWidth} min={20} max={100} step={2} onChange={set('qNoWidth')} />
               <SliderRow label="Topics Box Padding" value={layout.topicsCoveredBoxPadding} min={8} max={32} onChange={set('topicsCoveredBoxPadding')} />
               <SliderRow label="Topics Heading Gap" value={layout.topicsCoveredHeadingGap} min={2} max={24} onChange={set('topicsCoveredHeadingGap')} />
+              <SliderRow label="Logo Size" value={layout.logoSize} min={30} max={200} step={5} unit="px" onChange={set('logoSize')} />
+              <SliderRow label="Logo & Address Gap" value={layout.logoAddressGap ?? 10} min={-50} max={50} step={1} unit="px" onChange={set('logoAddressGap')} />
             </Section>
           )}
 
@@ -520,6 +522,7 @@ export default function DesignPanel({ meta, layout, questions, onLayoutChange }:
                 marginRight: 20,
                 logoSize: 64,
                 logoPosition: 'center',
+                logoAddressGap: 10,
                 schoolNameSize: 18,
                 examTitleSize: 15,
                 sectionTitleSize: 15,

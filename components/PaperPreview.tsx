@@ -286,14 +286,14 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                 </div>
 
                 {meta.logo ? (
-                  <img src={meta.logo} alt="logo" style={{ maxHeight: '120px', maxWidth: '100%', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
+                  <img src={meta.logo} alt="logo" style={{ maxHeight: `${layout.logoSize || 120}px`, maxWidth: '100%', objectFit: 'contain', display: 'block', marginLeft: 'auto', marginRight: 'auto', marginBottom: `${layout.logoAddressGap ?? 10}px` }} />
                 ) : (
-                  <div style={{ width: '100%', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', border: '1px dashed #ccc' }}>
+                  <div style={{ width: '100%', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', border: '1px dashed #ccc', marginBottom: `${layout.logoAddressGap ?? 10}px` }}>
                     [Upload Logo / Institute Name Image]
                   </div>
                 )}
 
-                <div style={{ fontSize: '12px', marginTop: '5px', lineHeight: '1.4', textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', marginTop: '0px', lineHeight: '1.4', textAlign: 'center' }}>
                   <b>ADDRESS :</b> Chaturavton ka bera, Ponjala, Mata ka than road, Jodhpur,
                   <br />
                   <i>Ph. 9829764378,8619186133</i>

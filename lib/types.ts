@@ -58,6 +58,7 @@ export interface LayoutSettings {
   // Logo
   logoSize: number        // px height
   logoPosition: 'left' | 'center' | 'right'
+  logoAddressGap: number
 
   // Typography
   schoolNameSize: number
