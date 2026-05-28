@@ -66,7 +66,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                   }),
                   new Paragraph({
                     alignment: AlignmentType.CENTER,
-                    children: [new TextRun({ text: 'Corporate Office : Chaturavton ka bera, Ponjala, Mata ka than road, Jodhpur,', bold: true, size: 20 })],
+                    children: [new TextRun({ text: 'ADDRESS : Chaturavton ka bera, Ponjala, Mata ka than road, Jodhpur,', bold: true, size: 20 })],
                   }),
                   new Paragraph({
                     alignment: AlignmentType.CENTER,
@@ -294,7 +294,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                 )}
 
                 <div style={{ fontSize: '12px', marginTop: '5px', lineHeight: '1.4', textAlign: 'center' }}>
-                  <b>Corporate Office :</b> Chaturavton ka bera, Ponjala, Mata ka than road, Jodhpur,
+                  <b>ADDRESS :</b> Chaturavton ka bera, Ponjala, Mata ka than road, Jodhpur,
                   <br />
                   <i>Ph. 9829764378,8619186133</i>
                 </div>
