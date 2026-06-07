@@ -87,6 +87,19 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
   const [toastMsg, setToastMsg] = useState('')
   const [aiProvider, setAiProvider] = useState<'gemini' | 'groq'>('gemini')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [aiQuestionType, setAiQuestionType] = useState<string>('MCQ')
+
+  // Preview modal state
+  const [previewQuestions, setPreviewQuestions] = useState<Array<{
+    id: string
+    text: string
+    type: string
+    options: string[]
+    marks: number
+    hasOr: boolean
+    orText: string
+  }> | null>(null)
+  const [previewTargetSection, setPreviewTargetSection] = useState<string>('')
 
   // References
   const imgInputRef = useRef<HTMLInputElement>(null)
@@ -135,26 +148,24 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
   // Smart AI Generator and Real API fetch
   const handleAIGenerate = async () => {
     if (!aiTopic.trim()) {
-      triggerToast('Please paste a question or describe a topic first!')
+      triggerToast('Please paste questions or describe a topic first!')
       return
     }
 
     setIsGenerating(true)
-    triggerToast(`✦ AI is analyzing and formatting your question using ${aiProvider === 'gemini' ? 'Gemini' : 'Groq'}...`)
+    triggerToast(`✦ AI is parsing your questions using ${aiProvider === 'gemini' ? 'Gemini' : 'Groq'}...`)
 
     try {
       const res = await fetch('/api/generate-questions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rawText: aiTopic.trim(),
           sectionLabel: activeSectionId,
           sectionDescription: meta.customSectionNames?.[activeSectionId] || `Section ${activeSectionId}`,
           defaultMarks: 1,
           subject: meta.subject || 'General',
-          defaultType: 'MCQ',
+          defaultType: aiQuestionType,
           provider: aiProvider,
           appMode: appMode,
         }),
@@ -162,28 +173,33 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
 
       if (!res.ok) {
         const errData = await res.json()
-        throw new Error(errData.error || 'Failed to generate question.')
+        throw new Error(errData.error || 'Failed to generate questions.')
       }
 
       const data = await res.json()
       if (data.questions && data.questions.length > 0) {
-        const q = data.questions[0]
-        setStatement(q.text || '')
-        
-        if (q.options && q.options.length > 0) {
-          const finalOptions = [...q.options]
-          while (finalOptions.length < 4) {
-            finalOptions.push(`Option ${String.fromCharCode(65 + finalOptions.length)}`)
+        // Normalize options to always be a 4-element array
+        const previews = data.questions.map((q: any) => {
+          let opts: string[] = []
+          if (Array.isArray(q.options)) {
+            opts = q.options.map(String)
           }
-          setOptions(finalOptions.slice(0, 4))
-        } else {
-          setOptions(['Option A', 'Option B', 'Option C', 'Option D'])
-        }
-        
-        setCorrectIndex(0)
-        triggerToast('✓ AI has successfully parsed and formatted your question!')
+          while (opts.length < 4) opts.push(`Option ${String.fromCharCode(65 + opts.length)}`)
+          return {
+            id: 'q_' + Math.random().toString(36).substr(2, 9),
+            text: q.text || '',
+            type: q.type || aiQuestionType,
+            options: opts.slice(0, 4),
+            marks: q.marks || 1,
+            hasOr: q.hasOr || false,
+            orText: q.orText || '',
+          }
+        })
+        setPreviewTargetSection(activeSectionId)
+        setPreviewQuestions(previews)
+        triggerToast(`✓ AI parsed ${previews.length} question${previews.length > 1 ? 's' : ''}! Review before adding.`)
       } else {
-        triggerToast('✕ AI could not extract any structured questions.')
+        triggerToast('✕ AI could not extract any structured questions. Try rephrasing or switching provider.')
       }
     } catch (error: any) {
       console.error(error)
@@ -191,6 +207,28 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  // Add all previewed questions to the paper
+  const handleAddPreviewedToPaper = () => {
+    if (!previewQuestions || previewQuestions.length === 0) return
+    const newQs: Question[] = previewQuestions.map(pq => ({
+      id: pq.id,
+      text: pq.text,
+      type: pq.type as Question['type'],
+      options: pq.options,
+      correctIndex: 0,
+      marks: pq.marks,
+      hasOr: pq.hasOr,
+      orText: pq.orText,
+    }))
+    setQuestions(prev => ({
+      ...prev,
+      [previewTargetSection]: [...(prev[previewTargetSection] || []), ...newQs]
+    }))
+    setPreviewQuestions(null)
+    setAiTopic('')
+    triggerToast(`✓ Added ${newQs.length} question${newQs.length > 1 ? 's' : ''} to Section ${previewTargetSection}!`)
   }
 
   // Options Handlers
@@ -618,50 +656,107 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
             </div>
           </div>
 
+          {/* Row 1: Section and Type selectors */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
+            {/* Target Section */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '140px' }}>
+              <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Add to Section</label>
+              <select
+                value={activeSectionId}
+                disabled={isGenerating}
+                onChange={(e) => setActiveSectionId(e.target.value)}
+                style={{
+                  background: '#0d121f',
+                  border: '1px solid rgba(56, 189, 248, 0.12)',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  color: '#f8fafc',
+                  fontSize: '13px',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {sectionsList.map(sec => (
+                  <option key={sec.id} value={sec.id}>Section {sec.id}: {sec.title}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Question Type */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
+              <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question Type</label>
+              <select
+                value={aiQuestionType}
+                disabled={isGenerating}
+                onChange={(e) => setAiQuestionType(e.target.value)}
+                style={{
+                  background: '#0d121f',
+                  border: '1px solid rgba(56, 189, 248, 0.12)',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  color: '#f8fafc',
+                  fontSize: '13px',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <option value="MCQ">MCQ (Multiple Choice)</option>
+                <option value="Short Answer">Short Answer</option>
+                <option value="Long Answer">Long Answer</option>
+                <option value="Fill in the Blanks">Fill in the Blanks</option>
+                <option value="Assertion-Reason">Assertion-Reason</option>
+              </select>
+            </div>
+
+            {/* AI Provider */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px' }}>
+              <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Engine</label>
+              <select
+                value={aiProvider}
+                disabled={isGenerating}
+                onChange={(e) => setAiProvider(e.target.value as 'gemini' | 'groq')}
+                style={{
+                  background: '#0d121f',
+                  border: '1px solid rgba(56, 189, 248, 0.12)',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  color: '#f8fafc',
+                  fontSize: '13px',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <option value="gemini">Gemini 3.5</option>
+                <option value="groq">Groq (Llama)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Row 2: Text input + generate button */}
           <div className="pc-ai-gen-form">
-            <input
-              type="text"
-              placeholder={appMode === 'school' ? 'Paste raw school question or describe a topic (e.g. Photosynthesis)...' : 'Paste competitive question or describe a topic (e.g. Rotational Mechanics)...'}
-              className="pc-ai-gen-input"
+            <textarea
+              rows={4}
+              placeholder={appMode === 'school' ? 'Paste one or more questions here (numbered 1. 2. 3. ...) or describe a topic...' : 'Paste competitive questions here (numbered 1. 2. 3. ...) or describe a topic (e.g. Sets and Functions)...'}
+              className="pc-cyber-textarea"
+              style={{ flex: 1, resize: 'vertical', minHeight: '80px', fontSize: '13px' }}
               value={aiTopic}
               disabled={isGenerating}
               onChange={(e) => setAiTopic(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !isGenerating) handleAIGenerate()
-              }}
             />
-            <select
-              value={aiProvider}
-              disabled={isGenerating}
-              onChange={(e) => setAiProvider(e.target.value as 'gemini' | 'groq')}
-              className="pc-ai-provider-select"
-              style={{
-                background: '#0d121f',
-                border: '1px solid rgba(56, 189, 248, 0.12)',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                color: '#f8fafc',
-                fontSize: '13px',
-                outline: 'none',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <option value="gemini">Gemini 3.5</option>
-              <option value="groq">Groq (Llama)</option>
-            </select>
             <button 
               type="button" 
               onClick={handleAIGenerate} 
               disabled={isGenerating}
               className="pc-ai-gen-btn"
-              style={{ opacity: isGenerating ? 0.7 : 1, cursor: isGenerating ? 'not-allowed' : 'pointer' }}
+              style={{ opacity: isGenerating ? 0.7 : 1, cursor: isGenerating ? 'not-allowed' : 'pointer', alignSelf: 'flex-end' }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
                 {isGenerating ? 'pending' : 'auto_awesome'}
               </span>
-              <span>{isGenerating ? 'Generating...' : 'Generate'}</span>
+              <span>{isGenerating ? 'Parsing...' : 'Parse & Preview'}</span>
             </button>
           </div>
         </div>
@@ -922,6 +1017,160 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
             {toastMsg.includes('added') ? 'check_circle' : toastMsg.includes('think') ? 'sync' : 'info'}
           </span>
           <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* ── AI Parse Preview Modal ──────────────────────────────── */}
+      {previewQuestions && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 99999, padding: '24px'
+        }}>
+          <div style={{
+            background: '#0b111e',
+            border: '1px solid rgba(6, 182, 212, 0.4)',
+            borderRadius: '16px',
+            boxShadow: '0 0 40px rgba(6, 182, 212, 0.15)',
+            width: '100%',
+            maxWidth: '720px',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '20px 24px',
+              borderBottom: '1px solid rgba(56, 189, 248, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#00f2fe', fontSize: '24px' }}>preview</span>
+                <div>
+                  <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                    Review Parsed Questions
+                  </h3>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: 0, marginTop: '2px' }}>
+                    {previewQuestions.length} question{previewQuestions.length !== 1 ? 's' : ''} parsed • Adding to Section {previewTargetSection}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewQuestions(null)}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>close</span>
+              </button>
+            </div>
+
+            {/* Scrollable Questions List */}
+            <div style={{ overflowY: 'auto', flex: 1, padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {previewQuestions.map((pq, idx) => (
+                <div
+                  key={pq.id}
+                  style={{
+                    background: 'rgba(56, 189, 248, 0.03)',
+                    border: '1px solid rgba(56, 189, 248, 0.1)',
+                    borderRadius: '10px',
+                    padding: '14px 16px',
+                    position: 'relative',
+                  }}
+                >
+                  {/* Remove button */}
+                  <button
+                    onClick={() => setPreviewQuestions(prev => prev ? prev.filter((_, i) => i !== idx) : null)}
+                    style={{
+                      position: 'absolute', top: '10px', right: '10px',
+                      background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
+                      color: '#ef4444', borderRadius: '6px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', padding: '3px 6px', gap: '4px', fontSize: '11px', fontWeight: 600
+                    }}
+                    title="Remove this question"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                    Remove
+                  </button>
+
+                  {/* Question number + text */}
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '10px', paddingRight: '80px' }}>
+                    <span style={{
+                      background: 'rgba(0, 242, 254, 0.12)', color: '#00f2fe',
+                      fontSize: '11px', fontWeight: 700, borderRadius: '4px',
+                      padding: '2px 7px', flexShrink: 0, marginTop: '1px'
+                    }}>
+                      Q{idx + 1}
+                    </span>
+                    <p style={{ fontSize: '13px', color: '#f8fafc', fontWeight: 500, lineHeight: 1.6, margin: 0 }}>
+                      {pq.text}
+                    </p>
+                  </div>
+
+                  {/* Options */}
+                  {pq.options && pq.options.some(o => o) && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', paddingLeft: '28px' }}>
+                      {pq.options.map((opt, oIdx) => (
+                        <div key={oIdx} style={{
+                          fontSize: '12px', color: '#94a3b8',
+                          display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: 1.4
+                        }}>
+                          <span style={{ fontWeight: 700, color: '#64748b', flexShrink: 0 }}>
+                            ({String.fromCharCode(97 + oIdx)})
+                          </span>
+                          <span>{opt || <em style={{ color: '#475569' }}>empty</em>}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {previewQuestions.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '40px', display: 'block', marginBottom: '8px' }}>delete_sweep</span>
+                  All questions removed. Click Cancel.
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '16px 24px',
+              borderTop: '1px solid rgba(56, 189, 248, 0.1)',
+              display: 'flex', justifyContent: 'flex-end', gap: '12px',
+              flexShrink: 0,
+            }}>
+              <button
+                onClick={() => setPreviewQuestions(null)}
+                style={{
+                  background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#94a3b8', borderRadius: '8px', padding: '10px 20px',
+                  fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '6px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddPreviewedToPaper}
+                disabled={previewQuestions.length === 0}
+                style={{
+                  background: previewQuestions.length === 0 ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #0ea5e9, #8b5cf6)',
+                  border: 'none', color: previewQuestions.length === 0 ? '#64748b' : '#fff',
+                  borderRadius: '8px', padding: '10px 24px',
+                  fontSize: '13px', fontWeight: 700, cursor: previewQuestions.length === 0 ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  boxShadow: previewQuestions.length > 0 ? '0 4px 15px rgba(14, 165, 233, 0.3)' : 'none'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add_circle</span>
+                Add {previewQuestions.length} Question{previewQuestions.length !== 1 ? 's' : ''} to Paper
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

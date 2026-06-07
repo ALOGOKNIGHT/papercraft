@@ -171,17 +171,33 @@ function normalizeItems(rawItems: unknown[], defaultMarks: number, defaultType: 
 
     if (typeof item !== 'object') continue;
     const q = item as Record<string, unknown>;
+
+    // Support questionText (new prompt) as well as text (old prompt)
     const text =
-      (typeof q.text === 'string' ? q.text.trim() : '') || pickText(q);
+      (typeof q.questionText === 'string' ? q.questionText.trim() : '') ||
+      (typeof q.text === 'string' ? q.text.trim() : '') ||
+      pickText(q);
     if (!text) continue;
 
-    const options = Array.isArray(q.options) ? (q.options as string[]).map(String) : [];
+    // Support options as array OR as object {a,b,c,d} (new prompt returns object)
+    let options: string[] = [];
+    if (Array.isArray(q.options)) {
+      options = (q.options as string[]).map(String);
+    } else if (q.options && typeof q.options === 'object') {
+      const optObj = q.options as Record<string, unknown>;
+      const ordered = ['a', 'b', 'c', 'd'];
+      options = ordered.map(k => (typeof optObj[k] === 'string' ? String(optObj[k]) : ''));
+    }
+
     let type =
       typeof q.type === 'string'
         ? q.type
         : typeof q.questionType === 'string'
           ? (q.questionType as string)
           : safeType;
+
+    // Normalize 'mcq' -> 'MCQ'
+    if (type.toLowerCase() === 'mcq') type = 'MCQ';
     if (!safeTypes.includes(type as (typeof safeTypes)[number])) {
       type = options.filter(Boolean).length >= 4 ? 'MCQ' : safeType;
     }
@@ -364,56 +380,74 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // One JSON shape for all providers: { "questions": [ ... ] } (works with Gemini JSON mode + Groq json_object).
-    const escapedInput = JSON.stringify(rawText);
-    const objectPrompt = `You are an expert academic exam paper formatter and AI assistant.
-Your task is to parse, clean, and format the provided raw input text into a structured JSON object for section "${sectionLabel}" (${sectionDescription}) for subject "${subject}".
-${appMode === 'school' ? 'Note: This is for a standard School Exam (CBSE/State Board style). Questions should align with standard school syllabus and test core concepts.' : 'Note: This is for a competitive Coaching Institute Exam (JEE/NEET style). Questions should be highly conceptual, testing multi-step analytical thinking and numerical/logical clarity.'}
+    // Build the AI prompt — improved version that handles unicode math, all MCQ formats, numbered splits
+    const objectPrompt = `You are a question paper parser for an Indian school/coaching exam paper generator.
+${appMode === 'school' ? 'This paper is for a standard School Exam (CBSE/State Board style).' : 'This paper is for a competitive Coaching Institute Exam (JEE/NEET style).'}
+Subject: ${subject}. Section: ${sectionLabel} (${sectionDescription}).
 
-IMPORTANT RULES FOR PARSING AND CLEANING:
+Your job is to parse the raw pasted question text below and return a clean structured JSON array.
 
-1. REMOVE COPY-PASTE NOISE & META TEXT:
-   - Strip all question numbers (e.g., "1.", "Q1.", "Question 1:") from the start of the question text.
-   - Strip all option indicators/labels (like "(a)", "(b)", "(c)", "(d)", "(A)", "(B)", "(C)", "(D)", "a)", "b)", "A.", "B.", "1)", "2)") from BOTH the question text and the options list. The option text must contain only the value/answer choice itself (e.g., option is "5 m/s", NOT "(a) 5 m/s").
-   - Strip any duplicate option lists from the question text block.
-   - Completely remove page numbers, headers, footers, website watermarks (e.g., "downloaded from ...", "join telegram ..."), exam year metadata, page breaks, or random website scrapings.
+CRITICAL RULES:
 
-2. MATH & PHYSICS LATEX FORMATTING (CRITICAL):
-   - You MUST format all mathematical and physics variables, equations, constants, formulas, and numeric expressions using standard LaTeX wrapped in single dollar signs ($...$).
-   - Use proper LaTeX commands instead of unicode characters:
-     - Greek letters: Use \\\\theta, \\\\mu, \\\\lambda, \\\\alpha, \\\\beta, \\\\pi, \\\\sigma, \\\\omega, \\\\Delta (e.g., $\\\\theta$, $\\\\mu$).
-     - Fractions: Use \\\\frac{numerator}{denominator} (e.g., $\\\\frac{3}{4}$, $\\\\frac{gx^2}{2u^2\\\\cos^2\\\\theta}$).
-     - Square Roots: Use \\\\sqrt{expression} (e.g., $\\\\sqrt{\\\\frac{3}{4}}$).
-     - Subscripts & Superscripts: Use proper LaTeX underscores and carets (e.g., $v_1$, $v_2$, $u^2$, $\\\\cos^2\\\\theta$).
-     - Trigonometric functions: Use \\\\tan, \\\\cos, \\\\sin (e.g., $\\\\tan\\\\theta$, $\\\\cos^2\\\\theta$).
-     - Multiplication & units: Use \\\\times or plain letters (e.g. $2 \\\\times 10^3$, $30^\\\\circ$).
-   - Do NOT wrap normal words, plain text, or spaces in math mode (e.g., do NOT write $5 \\\\text{ m/s}$, instead write "$5$ m/s" or "5 m/s").
-   - Ensure all backslashes in LaTeX commands are double-escaped as \\\\ in the JSON string (e.g., write \\\\frac, \\\\sqrt, \\\\theta, \\\\cos) so they are valid JSON string escapes.
+1. PRESERVE ALL MATHEMATICAL SYMBOLS EXACTLY AS UNICODE:
+   - Set notation characters: ∈ ∉ ⊂ ⊃ ⊆ ⊇ ∪ ∩ ∅ φ
+   - Number sets: ℕ ℤ ℝ ℚ ℂ
+   - Superscripts/subscripts: x² x³ (keep as-is, do NOT convert to LaTeX)
+   - Greek letters: α β γ δ θ λ μ π σ ω (keep as unicode)
+   - Comparison: ≤ ≥ ≠ ≈ ∝
+   - Arrows: → ← ↑ ↓
+   - DO NOT wrap unicode math symbols in LaTeX dollar signs.
+   - Only use LaTeX ($...$) if the original text already uses LaTeX or has explicit fractions like \\frac.
+   - If the question uses plain unicode like x² or A ∪ B = φ, keep them EXACTLY as-is.
 
-3. STRICT JSON FORMATTING:
-   - Respond with VALID JSON ONLY. Do not write any markdown fences (no \`\`\`json), no introductory prose, and no conversational explanation.
+2. SPLIT QUESTIONS CORRECTLY:
+   - Each question starts with a number followed by a space or period: "1 ", "2.", "3 ", "Q1.", etc.
+   - Everything between two question numbers (including options) belongs to the same question.
+   - Never merge two separate questions. Never split one question into two.
+   - Strip the leading question number from the questionText field.
 
-JSON Schema to return:
-{
-  "questions": [
-    {
-      "text": "Question text here with LaTeX math enclosed in $...$ (without question numbers or option labels)",
-      "type": "${defaultType}",
-      "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
-      "marks": ${defaultMarks},
-      "hasOr": false,
-      "orText": ""
-    }
-  ]
-}
+3. DETECT MCQ OPTIONS IN ALL FORMATS — parse into exactly 4 separate option strings:
+   FORMAT A — options on separate lines:
+     (a) Some answer text
+     (b) Another answer
+   FORMAT B — all options on one line:
+     (a) Option one (b) Option two (c) Option three (d) Option four
+   FORMAT C — options with math/sets on one line:
+     (a) {a} (b) {b} (c) {a,b} (d) {{a,b}}
+   For FORMAT C: "{a}" is a set containing element a — it is NOT an option label.
+   The option label pattern is "(a)" or "a)" followed by the option content.
+   Strip the label (a)/(b)/(c)/(d) — keep only the option text.
+   Never merge two options into one. Never split one option into two.
 
-Rules:
-- For MCQ: "options" must have exactly 4 strings. For non-MCQ: use []
-- "marks": number, use ${defaultMarks} if not explicitly defined in the raw input.
-- "hasOr"/"orText": if the question has an alternative "OR" option, set "hasOr" to true and put the alternative question text in "orText".
+4. CLEAN NOISE: Remove page numbers, watermarks, "downloaded from", "join telegram", exam metadata.
+   Do NOT remove any mathematical or scientific content.
 
-Input Text (verbatim):
-${escapedInput}`;
+5. All questions in this input are of type: ${defaultType}.
+
+6. RETURN ONLY VALID JSON — a plain array (not wrapped in an object). No explanation. No markdown. No backticks.
+
+Return format:
+[
+  {
+    "questionNumber": 1,
+    "questionText": "Full question text preserving all unicode math symbols exactly as they appear",
+    "type": "${defaultType === 'MCQ' ? 'mcq' : defaultType.toLowerCase()}",
+    "options": {
+      "a": "option a text",
+      "b": "option b text",
+      "c": "option c text",
+      "d": "option d text"
+    },
+    "marks": ${defaultMarks},
+    "hasOr": false,
+    "orText": ""
+  }
+]
+
+For non-MCQ types, set "options" to null.
+
+Input Text:
+${rawText}`;
 
     let resultText = '';
 
