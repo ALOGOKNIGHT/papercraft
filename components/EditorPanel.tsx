@@ -221,11 +221,66 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
   // Local question clipboard paste handler
   const handlePasteQuestion = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pastedText = e.clipboardData.getData('Text')
-    const parsed = parseLocalQuestionAndOptions(pastedText)
-    if (parsed) {
+    if (!pastedText) return
+
+    // Helper to split into potential question blocks
+    const splitIntoQuestionBlocks = (text: string): string[] => {
+      let blocks = text.split(/\n\n+/).map(b => b.trim()).filter(Boolean);
+      if (blocks.length <= 1) {
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        const numberedPattern = /^\s*(?:Q\.?\s*)?\d+[\.)]/i;
+        const matchingLinesCount = lines.filter(line => numberedPattern.test(line)).length;
+        if (matchingLinesCount >= 2) {
+          const chunks: string[] = [];
+          let currentChunk = "";
+          for (const line of lines) {
+            if (numberedPattern.test(line)) {
+              if (currentChunk.trim()) chunks.push(currentChunk.trim());
+              currentChunk = line;
+            } else {
+              currentChunk += "\n" + line;
+            }
+          }
+          if (currentChunk.trim()) chunks.push(currentChunk.trim());
+          blocks = chunks;
+        }
+      }
+      return blocks;
+    };
+
+    const blocks = splitIntoQuestionBlocks(pastedText)
+    const parsedQuestions: Array<{ statement: string; options: string[] }> = []
+
+    for (const block of blocks) {
+      const parsed = parseLocalQuestionAndOptions(block)
+      if (parsed) {
+        parsedQuestions.push(parsed)
+      }
+    }
+
+    if (parsedQuestions.length >= 2) {
       e.preventDefault()
-      setStatement(parsed.statement)
-      setOptions(parsed.options)
+      const newQuestionsList: Question[] = parsedQuestions.map(pq => ({
+        id: 'q_' + Math.random().toString(36).substr(2, 9),
+        text: pq.statement,
+        type: 'MCQ',
+        options: pq.options,
+        correctIndex: 0,
+        marks: 1,
+        hasOr: false,
+        orText: ''
+      }))
+
+      setQuestions(prev => ({
+        ...prev,
+        [activeSectionId]: [...(prev[activeSectionId] || []), ...newQuestionsList]
+      }))
+
+      triggerToast(`✓ Automatically added ${newQuestionsList.length} questions from clipboard!`)
+    } else if (parsedQuestions.length === 1) {
+      e.preventDefault()
+      setStatement(parsedQuestions[0].statement)
+      setOptions(parsedQuestions[0].options)
       setCorrectIndex(0)
       triggerToast('✓ Clipboard question and options automatically sorted into separate fields!')
     }

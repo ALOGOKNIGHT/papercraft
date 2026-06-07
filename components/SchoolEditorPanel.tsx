@@ -226,6 +226,131 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
     }))
   }
 
+  // Local parser for MCQ formatting combinations
+  const parseLocalQuestionAndOptions = (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed) return null
+
+    const inlinePatterns = [
+      /(.*?)\s+(?:A|a)\)\s+(.+?)\s+(?:B|b)\)\s+(.+?)\s+(?:C|c)\)\s+(.+?)\s+(?:D|d)\)\s+(.+)$/s,
+      /(.*?)\s+\((?:A|a)\)\s+(.+?)\s+\((?:B|b)\)\s+(.+?)\s+\((?:C|c)\)\s+(.+?)\s+\((?:D|d)\)\s+(.+)$/s,
+      /(.*?)\s+(?:A|a)\.\s+(.+?)\s+(?:B|b)\.\s+(.+?)\s+(?:C|c)\.\s+(.+?)\s+(?:D|d)\.\s+(.+)$/s,
+      /(.*?)\s+1\)\s+(.+?)\s+2\)\s+(.+?)\s+3\)\s+(.+?)\s+4\)\s+(.+)$/s,
+      /(.*?)\s+\(1\)\s+(.+?)\s+\(2\)\s+(.+?)\s+\(3\)\s+(.+?)\s+\(4\)\s+(.+)$/s,
+      /(.*?)\s+1\.\s+(.+?)\s+2\.\s+(.+?)\s+3\.\s+(.+?)\s+4\.\s+(.+)$/s,
+    ]
+
+    for (const pattern of inlinePatterns) {
+      const match = trimmed.match(pattern)
+      if (match) {
+        return {
+          statement: match[1].trim(),
+          options: [match[2].trim(), match[3].trim(), match[4].trim(), match[5].trim()]
+        }
+      }
+    }
+
+    const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length >= 3) {
+      const extractedOptions: string[] = []
+      const statementLines: string[] = []
+      const optionRegex = /^\s*(?:\(?([A-Da-d1-4])\)?[\.\)]|-)\s*(.+)$/
+
+      lines.forEach(line => {
+        const match = line.match(optionRegex)
+        if (match) {
+          extractedOptions.push(match[2].trim())
+        } else {
+          statementLines.push(line)
+        }
+      })
+
+      if (extractedOptions.length >= 2) {
+        const finalOpts = [...extractedOptions]
+        while (finalOpts.length < 4) {
+          finalOpts.push(`Option ${String.fromCharCode(65 + finalOpts.length)}`)
+        }
+        return {
+          statement: statementLines.join('\n').trim(),
+          options: finalOpts.slice(0, 4)
+        }
+      }
+    }
+    return null
+  }
+
+  const handlePasteQuestion = (e: React.ClipboardEvent<HTMLTextAreaElement>, isOr: boolean = false) => {
+    const pastedText = e.clipboardData.getData('Text')
+    if (!pastedText) return
+
+    const splitIntoQuestionBlocks = (text: string): string[] => {
+      let blocks = text.split(/\n\n+/).map(b => b.trim()).filter(Boolean);
+      if (blocks.length <= 1) {
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        const numberedPattern = /^\s*(?:Q\.?\s*)?\d+[\.)]/i;
+        const matchingLinesCount = lines.filter(line => numberedPattern.test(line)).length;
+        if (matchingLinesCount >= 2) {
+          const chunks: string[] = [];
+          let currentChunk = "";
+          for (const line of lines) {
+            if (numberedPattern.test(line)) {
+              if (currentChunk.trim()) chunks.push(currentChunk.trim());
+              currentChunk = line;
+            } else {
+              currentChunk += "\n" + line;
+            }
+          }
+          if (currentChunk.trim()) chunks.push(currentChunk.trim());
+          blocks = chunks;
+        }
+      }
+      return blocks;
+    };
+
+    const blocks = splitIntoQuestionBlocks(pastedText)
+    const parsedQuestions: Array<{ statement: string; options: string[] }> = []
+
+    for (const block of blocks) {
+      const parsed = parseLocalQuestionAndOptions(block)
+      if (parsed) {
+        parsedQuestions.push(parsed)
+      }
+    }
+
+    if (parsedQuestions.length >= 2) {
+      e.preventDefault()
+      const newQuestionsList: Question[] = parsedQuestions.map(pq => ({
+        id: 'q_' + Math.random().toString(36).substr(2, 9),
+        text: pq.statement,
+        type: 'MCQ',
+        options: pq.options,
+        correctIndex: 0,
+        marks: activeSection?.marksPerQuestion || 1,
+        hasOr: false,
+        orText: ''
+      }))
+
+      setQuestions(prev => ({
+        ...prev,
+        [activeSectionId]: [...(prev[activeSectionId] || []), ...newQuestionsList]
+      }))
+
+      triggerToast(`✓ Automatically added ${newQuestionsList.length} questions from clipboard!`)
+    } else if (parsedQuestions.length === 1) {
+      e.preventDefault()
+      if (isOr) {
+        setOrText(parsedQuestions[0].statement)
+        setOrMcqOptions(parsedQuestions[0].options)
+        setOrCorrectIdx(0)
+      } else {
+        setQText(parsedQuestions[0].statement)
+        setMcqOptions(parsedQuestions[0].options)
+        setCorrectIdx(0)
+      }
+      triggerToast('✓ Clipboard question and options automatically sorted into separate fields!')
+    }
+  }
+
   // Reset form
   const resetForm = () => {
     setQText('')
@@ -336,6 +461,7 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
         rows={3}
         value={text}
         onChange={e => setText(e.target.value)}
+        onPaste={(e) => handlePasteQuestion(e, label === 'ALTERNATE QUESTION')}
         style={{ fontSize: '13px' }}
       />
 
