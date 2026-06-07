@@ -444,6 +444,22 @@ input:focus, textarea:focus, select:focus {
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-fadeup { animation: fadeUp 0.38s ease both; }
+
+@keyframes dropdownFade {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-dropdown {
+  animation: dropdownFade 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.pc-dropdown-card {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pc-dropdown-card:hover {
+  background: rgba(6, 182, 212, 0.12) !important;
+  border-color: #00f2fe !important;
+  transform: translateY(-1px);
+}
 .delay-1 { animation-delay: 80ms; }
 .delay-2 { animation-delay: 160ms; }
 .delay-3 { animation-delay: 240ms; }

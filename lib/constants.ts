@@ -25,6 +25,25 @@ export const QUESTION_TYPES = [
   'Long Answer', 'Assertion-Reason', 'Case Study',
 ]
 
+export const SCHOOL_QUESTION_TYPES = [
+  'MCQ', 'Fill in the Blanks', 'Short Answer',
+  'Long Answer', 'Match the Column',
+]
+
+export const SCHOOL_CLASSES = [
+  'I', 'II', 'III', 'IV', 'V', 'VI',
+  'VII', 'VIII', 'IX', 'X', 'XI', 'XII',
+]
+
+export const DEFAULT_SCHOOL_INSTRUCTIONS = `This question paper contains 38 questions. All questions are compulsory.
+This question paper is divided into five Sections - A, B, C, D, and E.
+Section A comprises 20 questions of 1 mark each.
+Section B comprises 5 questions of 2 marks each.
+Section C comprises 6 questions of 3 marks each.
+Section D comprises 4 questions of 5 marks each.
+Section E comprises 3 case-based questions of 4 marks each.
+Draw neat figures wherever required. Take π = 22/7 wherever required if not stated.`
+
 export function generateId(): string {
   return Math.random().toString(36).slice(2, 9)
 }

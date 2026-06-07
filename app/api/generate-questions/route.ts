@@ -329,6 +329,7 @@ export async function POST(req: NextRequest) {
       subject,
       defaultType = 'Short Answer',
       provider = 'gemini',
+      appMode = 'coaching',
     } = await req.json();
 
     if (!rawText?.trim()) {
@@ -350,26 +351,36 @@ export async function POST(req: NextRequest) {
 
     // One JSON shape for all providers: { "questions": [ ... ] } (works with Gemini JSON mode + Groq json_object).
     const escapedInput = JSON.stringify(rawText);
-    const objectPrompt = `You are an expert Indian school exam paper formatter.
-Convert this text into structured JSON for section "${sectionLabel}" (${sectionDescription}) for subject "${subject}".
+    const objectPrompt = `You are an expert school exam paper formatter and AI assistant.
+Convert the provided raw input text into a clean, structured JSON object for section "${sectionLabel}" (${sectionDescription}) for subject "${subject}".
+${appMode === 'school' ? 'Note: This is for a standard School Exam (CBSE/State Board style). Questions should align with standard school syllabus and test core concepts.' : 'Note: This is for a competitive Coaching Institute Exam (JEE/NEET style). Questions should be highly conceptual, testing multi-step analytical thinking and numerical/logical clarity.'}
 
+IMPORTANT instructions for processing and cleaning the input:
+1. CLEAN COPY-PASTE NOISE:
+   - Completely remove any duplicate option letters/markers (like "(a)", "(b)", "(c)", "(d)", "a)", "b)", "A)", "B)") from both the question text and the options list.
+   - Remove duplicate question numbers, headers, footers, website watermarks, page numbers, or random copy-paste metadata.
+   
+2. SIMPLIFY MATHEMATICAL & PHYSICS EXPRESSIONS:
+   - Format math and physics expressions in their SIMPLEST readable form.
+   - Use inline math mode with single dollar signs (e.g. $x < 1$, $y = 3x^2$, $v = u + at$) ONLY for variables, equations, constants, or formulas.
+   - Do NOT wrap plain text, spaces, or normal words in math mode (e.g., never use LaTeX commands like \\text{ and } or \\text{ or } inside math mode). Keep words like "and", "or", "is" in plain text outside the math blocks.
+   - Avoid over-complicating simple set/bracket notations. Keep normal curly braces { } and brackets [ ] as plain text rather than escaping them as \\{ and \\} unless they are part of a complex equation block.
+   - Use simple standard letters for number sets (e.g., use 'N' or 'R') instead of complex LaTeX fonts like \\mathbb{N} or \\mathbb{R}.
+   - For powers and subscripts, use clean LaTeX like $x^2$, $10^{-3}$, $F_g$ but keep the surrounding text normal.
+   
 IMPORTANT: Respond with VALID JSON ONLY. No markdown, no prose, no code fences.
 Shape: exactly one JSON object:
 {"questions":[{"text":"...","type":"MCQ","options":["","","",""],"marks":${defaultMarks},"hasOr":false,"orText":""}]}
 
 Rules:
-- "questions" is a non-empty array when the input contains at least one question.
-- Each item MUST include "text" (the question wording). Strip leading numbers like "1." from text.
+- "questions" is a non-empty array of questions.
+- Each item MUST include "text" (the question wording, stripped of leading numbers like "1.").
 - "type": one of "MCQ", "Short Answer", "Long Answer", "Fill in the Blanks", "Assertion-Reason", "Case Study"
 - For MCQ: "options" must have exactly 4 strings. For non-MCQ: use []
-- "marks": number, use ${defaultMarks} when not stated
+- "marks": number, use ${defaultMarks} when not stated in input
 - "hasOr"/"orText": alternate branch if present in input
 
-Math: put LaTeX inside $...$ e.g. $\\frac{a}{b}$
-- For powers/exponents, NEVER leave plain caret notation like x^2 or 10^-3 outside math mode.
-- Write exponents as LaTeX such as $x^{2}$, $10^{-3}$, $(a+b)^{2}$
-
-Input Text (verbatim JSON string â€” parse mentally, do not echo this line as JSON output):
+Input Text (verbatim JSON string — parse mentally, do not echo this line as JSON output):
 ${escapedInput}`;
 
     let resultText = '';

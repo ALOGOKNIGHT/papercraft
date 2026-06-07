@@ -29,14 +29,22 @@ interface Props {
   questions: QuestionsMap
   hideControls?: boolean
   isEmbedded?: boolean
+  appMode?: 'school' | 'coaching'
 }
 
-export default function PaperPreview({ meta, layout, questions, hideControls, isEmbedded }: Props) {
+export const getOrderedKeys = (questionsKeys: string[], sectionOrder?: string[]): string[] => {
+  const order = sectionOrder || []
+  const ordered = questionsKeys.filter(k => order.includes(k)).sort((a, b) => order.indexOf(a) - order.indexOf(b))
+  const unordered = questionsKeys.filter(k => !order.includes(k)).sort()
+  return [...ordered, ...unordered]
+}
+
+export default function PaperPreview({ meta, layout, questions, hideControls, isEmbedded, appMode = 'coaching' }: Props) {
   const [printMode, setPrintMode] = useState<'single' | 'dual'>('single')
   let globalNum = 1
 
   const exportToWord = () => {
-    const allQs = Object.keys(questions).sort().flatMap((secId) => questions[secId] || [])
+    const allQs = getOrderedKeys(Object.keys(questions), meta.sectionOrder).flatMap((secId) => questions[secId] || [])
 
     if (allQs.length === 0) {
       alert('No questions available to export.')
@@ -75,9 +83,9 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                   new Paragraph({ text: '' }),
                   new Paragraph({
                     children: [
-                      new TextRun({ text: `MM : ${meta.maxMarks || '300'}`, bold: true, size: 24 }),
-                      new TextRun({ text: `\t\t\t\t\t\t${meta.testSeries || 'Test Series-2025-26'}`, bold: true, size: 24 }),
-                      new TextRun({ text: `\t\t\t\t\t\tTime : ${meta.time || '180 Min.'}`, bold: true, size: 24 }),
+                      new TextRun({ text: `MM : ${meta.maxMarks || (appMode === 'school' ? '80' : '300')}`, bold: true, size: 24 }),
+                      new TextRun({ text: `\t\t\t\t\t\t${meta.testSeries || (appMode === 'school' ? 'Half-Yearly Exam-2025-26' : 'Test Series-2025-26')}`, bold: true, size: 24 }),
+                      new TextRun({ text: `\t\t\t\t\t\tTime : ${meta.time || (appMode === 'school' ? '3 Hours' : '180 Min.')}`, bold: true, size: 24 }),
                     ],
                   }),
                   new Paragraph({ text: '' }),
@@ -104,7 +112,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                       ]
                     : []),
                 ]),
-            ...Object.keys(questions).sort().flatMap((secId) => {
+            ...getOrderedKeys(Object.keys(questions), meta.sectionOrder).flatMap((secId) => {
               const qs = questions[secId] || []
               if (qs.length === 0) return []
 
@@ -278,7 +286,67 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
         <div style={{ breakInside: 'avoid', marginBottom: '20px' }}>
           {meta.headerType === 'custom' ? (
             <div className="custom-header-preview" dangerouslySetInnerHTML={{ __html: meta.customHeaderHTML || '<div style="text-align: center; color: #999;">Empty Custom Header</div>' }} />
+          ) : appMode === 'school' ? (
+            /* ── SCHOOL MODE HEADER ─────────────────────────── */
+            <div style={{ fontFamily: "'Times New Roman', serif" }}>
+              {/* Row 1: Logo + School Name */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '4px' }}>
+                {meta.logo && (
+                  <img src={meta.logo} alt="school logo" style={{ height: `${layout.logoSize || 64}px`, objectFit: 'contain' }} />
+                )}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: `${layout.schoolNameSize || 18}px`, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {meta.schoolName || 'School Name'}
+                  </div>
+                  {/* Row 2: Branch */}
+                  {(meta.schoolBranch || meta.city) && (
+                    <div style={{ fontSize: '13px', fontWeight: 'bold', marginTop: '2px' }}>
+                      {meta.schoolBranch || meta.city}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 3: Examination Name */}
+              <div style={{ textAlign: 'center', fontSize: `${layout.examTitleSize || 15}px`, fontWeight: 'bold', marginTop: '6px', marginBottom: '8px' }}>
+                ({meta.examTitle || 'Examination Name'})
+              </div>
+
+              {/* Divider */}
+              <hr style={{ border: 'none', borderTop: '2px solid #000', margin: '6px 0' }} />
+
+              {/* Row 4: Class / Subject / Time / FM */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 'bold', padding: '6px 0' }}>
+                <span>Class:- {meta.className || 'X'}</span>
+                <span>Subject:- {meta.subject || 'Mathematics'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 'bold', paddingBottom: '6px' }}>
+                <span>Time:- {meta.time || '3 Hrs.'}</span>
+                <span>F.M.:- {meta.maxMarks || '80'}</span>
+              </div>
+
+              {/* Divider */}
+              <hr style={{ border: 'none', borderTop: '2px solid #000', margin: '6px 0' }} />
+
+              {/* General Instructions */}
+              {meta.instructions && (
+                <div style={{ marginTop: '10px', marginBottom: '10px', fontSize: `${layout.instructionFontSize}px`, lineHeight: '1.6' }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px', textDecoration: 'underline' }}>General Instructions:</div>
+                  <div>
+                    {meta.instructions.split('\n').filter(Boolean).map((line, i) => (
+                      <div key={i} style={{ paddingLeft: '8px' }}>
+                        {i + 1}. {renderFormattedText(line)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Divider */}
+              <hr style={{ border: 'none', borderTop: '1px solid #000', margin: '6px 0 14px' }} />
+            </div>
           ) : (
+            /* ── COACHING MODE HEADER (original, unchanged) ─── */
             <>
               <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '15px', zIndex: 1 }}>
                 <div style={{ position: 'absolute', left: 0, top: 0, border: '2px solid #000', padding: '4px 10px', fontWeight: 'bold', fontSize: '14px', background: '#fff' }}>
@@ -339,7 +407,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
 
               {meta.instructions && (
                 <div style={{ border: '1px solid #000', padding: '10px', marginBottom: '20px', fontSize: `${layout.instructionFontSize}px`, lineHeight: '1.5' }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>General Instrutions :</div>
+                  <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>General Instructions :</div>
                   <div>
                     {meta.instructions.split('\n').filter(Boolean).map((line, i) => (
                       <div key={i}>{renderFormattedText(line)}</div>
@@ -352,7 +420,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
         </div>
 
         {(() => {
-          const activeSections = Object.keys(questions).sort().filter(secId => (questions[secId] || []).length > 0)
+          const activeSections = getOrderedKeys(Object.keys(questions), meta.sectionOrder).filter(secId => (questions[secId] || []).length > 0)
 
           if (activeSections.length === 0) {
             return (
@@ -367,7 +435,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
 
           // Compile a flat list of direct children for the columns container
           const columnItems: (
-            | { type: 'heading'; secId: string; title: string }
+            | { type: 'heading'; secId: string; title: string; description: string }
             | { type: 'question'; q: any; globalIndex: number }
           )[] = []
 
@@ -388,7 +456,8 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
             columnItems.push({
               type: 'heading',
               secId,
-              title: meta.customSectionNames?.[secId] || `Section ${secId}`
+              title: meta.customSectionNames?.[secId] || `Section ${secId}`,
+              description: meta.customSectionDescriptions?.[secId] || ''
             })
 
             const secQs = questions[secId] || []
@@ -420,6 +489,11 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                 >
                   {(meta.customSectionNames?.[firstSecId] || `Section ${firstSecId}`).toUpperCase()}
                 </span>
+                {meta.customSectionDescriptions?.[firstSecId] && (
+                  <div style={{ fontSize: `${layout.questionFontSize - 1}px`, fontStyle: 'italic', marginTop: '6px', color: '#333', fontWeight: 500 }}>
+                    {meta.customSectionDescriptions[firstSecId]}
+                  </div>
+                )}
               </div>
 
               {/* Single Unified Two-Column Container */}
@@ -462,6 +536,11 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                         >
                           {item.title.toUpperCase()}
                         </span>
+                        {item.description && (
+                          <div style={{ fontSize: `${layout.questionFontSize - 1}px`, fontStyle: 'italic', marginTop: '6px', color: '#333', fontWeight: 500 }}>
+                            {item.description}
+                          </div>
+                        )}
                       </div>
                     )
                   } else {
@@ -509,6 +588,56 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                           {q.image && (
                             <div style={{ marginTop: '10px', textAlign: 'center' }}>
                               <img src={q.image} alt="diagram" style={{ maxWidth: '100%', maxHeight: '140px', objectFit: 'contain' }} />
+                            </div>
+                          )}
+
+                          {/* Match the Column table */}
+                          {q.type === 'Match the Column' && q.matchColumnA && q.matchColumnB && (
+                            <div style={{ marginTop: '10px' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: `${layout.questionFontSize - 1}px` }}>
+                                <thead>
+                                  <tr>
+                                    <th style={{ border: '1px solid #000', padding: '4px 8px', fontWeight: 'bold', textAlign: 'center', width: '50%' }}>Column A</th>
+                                    <th style={{ border: '1px solid #000', padding: '4px 8px', fontWeight: 'bold', textAlign: 'center', width: '50%' }}>Column B</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {Array.from({ length: Math.max(q.matchColumnA.length, q.matchColumnB.length) }).map((_, i) => (
+                                    <tr key={i}>
+                                      <td style={{ border: '1px solid #000', padding: '4px 8px' }}>
+                                        {q.matchColumnA![i] ? `${i + 1}. ${q.matchColumnA![i]}` : ''}
+                                      </td>
+                                      <td style={{ border: '1px solid #000', padding: '4px 8px' }}>
+                                        {q.matchColumnB![i] ? `${String.fromCharCode(97 + i)}. ${q.matchColumnB![i]}` : ''}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          {/* OR question */}
+                          {q.hasOr && q.orQuestion && (
+                            <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #000' }}>
+                              <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px', margin: '4px 0 8px' }}>OR</div>
+                              <div style={{ fontSize: `${layout.questionFontSize}px`, lineHeight: layout.lineHeight, color: '#000', fontWeight: 500 }}>
+                                <MathText content={q.orQuestion.text} />
+                              </div>
+                              {q.orQuestion.type === 'MCQ' && q.orQuestion.options && q.orQuestion.options.length > 0 && (
+                                <div style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: layout.mcqLayout === '1-col' ? '1fr' : layout.mcqLayout === '4-col' ? '1fr 1fr 1fr 1fr' : '1fr 1fr',
+                                  gap: '6px', marginTop: '8px', fontSize: `${layout.questionFontSize - 1}px`,
+                                }}>
+                                  {q.orQuestion.options.map((opt: string, i: number) => (
+                                    <div key={i} style={{ display: 'flex', gap: '4px', alignItems: 'baseline', color: '#000' }}>
+                                      <span style={{ fontWeight: '700' }}>{String.fromCharCode(65 + i)})</span>
+                                      <MathText content={opt} />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

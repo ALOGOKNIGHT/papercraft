@@ -10,6 +10,7 @@ interface Props {
   questions: QuestionsMap
   onMetaChange: (m: PaperMeta) => void
   onLayoutChange: (l: LayoutSettings) => void
+  appMode?: 'school' | 'coaching'
 }
 
 /* ────────────────────────────────────────────────
@@ -253,7 +254,7 @@ const navItems: { id: NavSection; label: string; icon: string }[] = [
 /* ══════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ══════════════════════════════════════════════════════════════ */
-export default function DesignPanel({ meta, layout, questions, onLayoutChange }: Props) {
+export default function DesignPanel({ meta, layout, questions, onLayoutChange, appMode = 'coaching' }: Props) {
   const set = (key: keyof LayoutSettings) => (v: any) => onLayoutChange({ ...layout, [key]: v })
   const [activeNav, setActiveNav] = useState<NavSection>('layout')
 
@@ -349,7 +350,7 @@ export default function DesignPanel({ meta, layout, questions, onLayoutChange }:
 
         <div className="pc-design-preview-paper" style={{ width: '100%', display: 'flex', justifyContent: 'center', background: '#090d16', padding: '24px 0', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.06)' }}>
           <div style={{ zoom: 0.58, width: '210mm', boxShadow: '0 12px 36px rgba(0, 0, 0, 0.4)' }}>
-            <PaperPreview meta={meta} layout={layout} questions={questions} hideControls={true} isEmbedded={true} />
+            <PaperPreview meta={meta} layout={layout} questions={questions} hideControls={true} isEmbedded={true} appMode={appMode} />
           </div>
         </div>
       </div>

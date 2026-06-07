@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { PaperMeta, QuestionsMap, Question } from '@/lib/types'
+import { getOrderedKeys } from './PaperPreview'
 
 // Robust local parser for multiple MCQ formatting combinations (A, B, C, D marked)
 function parseLocalQuestionAndOptions(text: string) {
@@ -67,9 +68,10 @@ interface Props {
   setQuestions: React.Dispatch<React.SetStateAction<QuestionsMap>>
   meta: PaperMeta
   setMeta: React.Dispatch<React.SetStateAction<PaperMeta>>
+  appMode?: 'school' | 'coaching'
 }
 
-export default function EditorPanel({ questions, setQuestions, meta, setMeta }: Props) {
+export default function EditorPanel({ questions, setQuestions, meta, setMeta, appMode = 'coaching' }: Props) {
   const [activeSectionId, setActiveSectionId] = useState<string>('A')
 
   // Renaming state
@@ -90,12 +92,31 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta }: 
   const imgInputRef = useRef<HTMLInputElement>(null)
 
   // Derived sections list and active section
-  const sectionsList = Object.keys(questions).sort().map(id => ({
+  const sectionsList = getOrderedKeys(Object.keys(questions), meta.sectionOrder).map(id => ({
     id,
     title: meta.customSectionNames?.[id] || (id === 'A' ? 'Core Principles' : id === 'B' ? 'Applications & Formulae' : `Section ${id}`)
   }))
 
   const activeSection = sectionsList.find(s => s.id === activeSectionId) || sectionsList[0] || { id: 'A', title: 'Core Principles' }
+
+  const moveSection = (id: string, direction: 'up' | 'down') => {
+    const keys = sectionsList.map(s => s.id)
+    const index = keys.indexOf(id)
+    if (index === -1) return
+    const newIndex = direction === 'up' ? index - 1 : index + 1
+    if (newIndex < 0 || newIndex >= keys.length) return
+
+    const newKeys = [...keys]
+    const temp = newKeys[index]
+    newKeys[index] = newKeys[newIndex]
+    newKeys[newIndex] = temp
+
+    setMeta(prev => ({
+      ...prev,
+      sectionOrder: newKeys
+    }))
+    triggerToast('✓ Section order updated!')
+  }
 
   const totalAddedQuestionsCount = Object.values(questions).flat().length
 
@@ -135,6 +156,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta }: 
           subject: meta.subject || 'General',
           defaultType: 'MCQ',
           provider: aiProvider,
+          appMode: appMode,
         }),
       })
 
@@ -318,11 +340,13 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta }: 
       <aside className="pc-editor-sidebar" style={{ minWidth: '240px' }}>
         <div className="pc-editor-sidebar-header">
           <h3 className="pc-editor-sidebar-title">Question Builder</h3>
-          <p className="pc-editor-sidebar-subtitle">Manage Exam Content</p>
+          <p className="pc-editor-sidebar-subtitle">
+            {appMode === 'school' ? 'Manage School Exam' : 'Manage Coaching Exam'}
+          </p>
         </div>
 
         <nav className="pc-editor-sidebar-nav" style={{ flex: 1, overflowY: 'auto' }}>
-          {sectionsList.map((sec) => (
+          {sectionsList.map((sec, idx) => (
             <div key={sec.id} style={{ display: 'flex', alignItems: 'center', width: '100%', marginBottom: '4px', gap: '4px' }}>
               {renamingSectionId === sec.id ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', width: '100%' }}>
@@ -376,26 +400,74 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta }: 
                       Section {sec.id}: {sec.title}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Stop sidebar click activation
-                      startRenaming(sec.id, sec.title);
-                    }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: activeSectionId === sec.id ? '#00f2fe' : '#64748b',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '4px',
-                      zIndex: 10
-                    }}
-                    title="Rename section"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', zIndex: 10 }}>
+                    {/* Move Up */}
+                    {idx > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          moveSection(sec.id, 'up')
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: activeSectionId === sec.id ? '#00f2fe' : '#64748b',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '2px',
+                          opacity: 0.6,
+                        }}
+                        title="Move Up"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_upward</span>
+                      </button>
+                    )}
+                    {/* Move Down */}
+                    {idx < sectionsList.length - 1 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          moveSection(sec.id, 'down')
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: activeSectionId === sec.id ? '#00f2fe' : '#64748b',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '2px',
+                          opacity: 0.6,
+                        }}
+                        title="Move Down"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_downward</span>
+                      </button>
+                    )}
+                    {/* Rename */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Stop sidebar click activation
+                        startRenaming(sec.id, sec.title);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: activeSectionId === sec.id ? '#00f2fe' : '#64748b',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '2px',
+                      }}
+                      title="Rename section"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -494,7 +566,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta }: 
           <div className="pc-ai-gen-form">
             <input
               type="text"
-              placeholder="Paste raw question text or describe a topic (e.g. Photosynthesis)..."
+              placeholder={appMode === 'school' ? 'Paste raw school question or describe a topic (e.g. Photosynthesis)...' : 'Paste competitive question or describe a topic (e.g. Rotational Mechanics)...'}
               className="pc-ai-gen-input"
               value={aiTopic}
               disabled={isGenerating}

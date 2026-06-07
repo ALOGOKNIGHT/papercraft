@@ -5,6 +5,7 @@ export type QuestionType =
   | 'Long Answer'
   | 'Assertion-Reason'
   | 'Case Study'
+  | 'Match the Column'
 
 export interface Question {
   id: string
@@ -16,6 +17,16 @@ export interface Question {
   orText: string
   image?: string          // base64 for diagram
   correctIndex?: number   // for MCQ correct answer tracking
+  orQuestion?: Question   // nested OR alternative question (school mode)
+  matchColumnA?: string[] // Column A items for Match the Column
+  matchColumnB?: string[] // Column B items for Match the Column
+}
+
+export interface SchoolSection {
+  id: string
+  title: string           // e.g. "PART-A", "SECTION I"
+  description: string     // e.g. "Section I has 16 questions of 1 mark each"
+  marksPerQuestion: number
 }
 
 export interface SectionConfig {
@@ -42,6 +53,10 @@ export interface PaperMeta {
   headerType?: 'standard' | 'custom'
   customHeaderHTML?: string
   customSectionNames?: Record<string, string>
+  customSectionDescriptions?: Record<string, string>
+  customSectionMarks?: Record<string, number>
+  schoolBranch?: string   // School location/branch (school mode)
+  sectionOrder?: string[]
 }
 
 export type QuestionsMap = Record<string, Question[]>
@@ -95,3 +110,15 @@ export interface LayoutSettings {
   watermarkXOffset: number
   watermarkYOffset: number
 }
+
+export interface SavedPaper {
+  id: string
+  name: string
+  mode: 'school' | 'coaching'
+  meta: PaperMeta
+  questions: QuestionsMap
+  layout: LayoutSettings
+  createdAt: string
+  updatedAt: string
+}
+
