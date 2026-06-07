@@ -38,7 +38,13 @@ function extractJson(text: string) {
   try {
     return JSON.parse(cleaned);
   } catch {
-    // keep going
+    // try double-escaping single backslashes
+    try {
+      const doubleEscaped = cleaned.replace(/(?<!\\)\\(?![\\"])/g, '\\\\');
+      return JSON.parse(doubleEscaped);
+    } catch {
+      // keep going
+    }
   }
 
   const firstObj = cleaned.indexOf('{');
@@ -55,7 +61,16 @@ function extractJson(text: string) {
     else if (ch === close) depth--;
     if (depth === 0) {
       const candidate = cleaned.slice(start, i + 1);
-      return JSON.parse(candidate);
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        try {
+          const doubleEscapedCandidate = candidate.replace(/(?<!\\)\\(?![\\"])/g, '\\\\');
+          return JSON.parse(doubleEscapedCandidate);
+        } catch {
+          // throw the error
+        }
+      }
     }
   }
 
@@ -351,36 +366,50 @@ export async function POST(req: NextRequest) {
 
     // One JSON shape for all providers: { "questions": [ ... ] } (works with Gemini JSON mode + Groq json_object).
     const escapedInput = JSON.stringify(rawText);
-    const objectPrompt = `You are an expert school exam paper formatter and AI assistant.
-Convert the provided raw input text into a clean, structured JSON object for section "${sectionLabel}" (${sectionDescription}) for subject "${subject}".
+    const objectPrompt = `You are an expert academic exam paper formatter and AI assistant.
+Your task is to parse, clean, and format the provided raw input text into a structured JSON object for section "${sectionLabel}" (${sectionDescription}) for subject "${subject}".
 ${appMode === 'school' ? 'Note: This is for a standard School Exam (CBSE/State Board style). Questions should align with standard school syllabus and test core concepts.' : 'Note: This is for a competitive Coaching Institute Exam (JEE/NEET style). Questions should be highly conceptual, testing multi-step analytical thinking and numerical/logical clarity.'}
 
-IMPORTANT instructions for processing and cleaning the input:
-1. CLEAN COPY-PASTE NOISE:
-   - Completely remove any duplicate option letters/markers (like "(a)", "(b)", "(c)", "(d)", "a)", "b)", "A)", "B)") from both the question text and the options list.
-   - Remove duplicate question numbers, headers, footers, website watermarks, page numbers, or random copy-paste metadata.
-   
-2. SIMPLIFY MATHEMATICAL & PHYSICS EXPRESSIONS:
-   - Format math and physics expressions in their SIMPLEST readable form.
-   - Use inline math mode with single dollar signs (e.g. $x < 1$, $y = 3x^2$, $v = u + at$) ONLY for variables, equations, constants, or formulas.
-   - Do NOT wrap plain text, spaces, or normal words in math mode (e.g., never use LaTeX commands like \\text{ and } or \\text{ or } inside math mode). Keep words like "and", "or", "is" in plain text outside the math blocks.
-   - Avoid over-complicating simple set/bracket notations. Keep normal curly braces { } and brackets [ ] as plain text rather than escaping them as \\{ and \\} unless they are part of a complex equation block.
-   - Use simple standard letters for number sets (e.g., use 'N' or 'R') instead of complex LaTeX fonts like \\mathbb{N} or \\mathbb{R}.
-   - For powers and subscripts, use clean LaTeX like $x^2$, $10^{-3}$, $F_g$ but keep the surrounding text normal.
-   
-IMPORTANT: Respond with VALID JSON ONLY. No markdown, no prose, no code fences.
-Shape: exactly one JSON object:
-{"questions":[{"text":"...","type":"MCQ","options":["","","",""],"marks":${defaultMarks},"hasOr":false,"orText":""}]}
+IMPORTANT RULES FOR PARSING AND CLEANING:
+
+1. REMOVE COPY-PASTE NOISE & META TEXT:
+   - Strip all question numbers (e.g., "1.", "Q1.", "Question 1:") from the start of the question text.
+   - Strip all option indicators/labels (like "(a)", "(b)", "(c)", "(d)", "(A)", "(B)", "(C)", "(D)", "a)", "b)", "A.", "B.", "1)", "2)") from BOTH the question text and the options list. The option text must contain only the value/answer choice itself (e.g., option is "5 m/s", NOT "(a) 5 m/s").
+   - Strip any duplicate option lists from the question text block.
+   - Completely remove page numbers, headers, footers, website watermarks (e.g., "downloaded from ...", "join telegram ..."), exam year metadata, page breaks, or random website scrapings.
+
+2. SIMPLIFY & NORMALIZE PHYSICS AND MATH EXPRESSIONS:
+   - Format equations and variables in a clean, readable, simple format.
+   - Use standard inline math syntax with single dollar signs (e.g., $v = u + at$, $E = mc^2$, $F = G \\\\frac{m_1 m_2}{r^2}$) ONLY for variables, equations, constants, or formulas.
+   - Do NOT wrap normal words, units, or spaces inside math mode (e.g., do NOT write $5 \\\\text{ m/s}$, instead write "5 m/s" or $5$ m/s. Never use LaTeX commands like \\\\text{ ... } inside math blocks).
+   - Use simple unicode symbols directly (e.g. θ, μ, λ, σ, π, α, β, γ, Δ, √, °, ±, ×, /) instead of backslash-heavy LaTeX commands (like \\\\theta, \\\\mu, \\\\lambda, \\\\sqrt, \\\\circ, \\\\times, \\\\pm) to keep equations clean, readable, and JSON-safe.
+   - For simple subscripts and exponents, prefer unicode (e.g. x², 10⁻³, H₂O, F_g) or clean LaTeX ($10^{-3}$, $F_g$, $x^2$) but keep surrounding text in plain English.
+   - Keep sets, curly braces { }, and brackets [ ] as standard plain text characters. Do NOT escape them as \\\\{ or \\\\} unless they are part of a complex LaTeX equation.
+
+3. STRICT JSON FORMATTING:
+   - Double-escape any backslashes used in LaTeX (e.g., write \\\\frac or \\\\theta, not \\frac or \\theta) to prevent JSON syntax errors.
+   - Respond with VALID JSON ONLY. Do not write any markdown fences (no \`\`\`json), no introductory prose, and no conversational explanation.
+
+JSON Schema to return:
+{
+  "questions": [
+    {
+      "text": "Question text here (without question number or option text)",
+      "type": "${defaultType}",
+      "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
+      "marks": ${defaultMarks},
+      "hasOr": false,
+      "orText": ""
+    }
+  ]
+}
 
 Rules:
-- "questions" is a non-empty array of questions.
-- Each item MUST include "text" (the question wording, stripped of leading numbers like "1.").
-- "type": one of "MCQ", "Short Answer", "Long Answer", "Fill in the Blanks", "Assertion-Reason", "Case Study"
 - For MCQ: "options" must have exactly 4 strings. For non-MCQ: use []
-- "marks": number, use ${defaultMarks} when not stated in input
-- "hasOr"/"orText": alternate branch if present in input
+- "marks": number, use ${defaultMarks} if not explicitly defined in the raw input.
+- "hasOr"/"orText": if the question has an alternative "OR" option, set "hasOr" to true and put the alternative question text in "orText".
 
-Input Text (verbatim JSON string — parse mentally, do not echo this line as JSON output):
+Input Text (verbatim):
 ${escapedInput}`;
 
     let resultText = '';
