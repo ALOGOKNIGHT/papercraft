@@ -82,10 +82,18 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                   }),
                   new Paragraph({ text: '' }),
                   new Paragraph({
+                    alignment: appMode === 'school' ? undefined : AlignmentType.CENTER,
                     children: [
-                      new TextRun({ text: `MM : ${meta.maxMarks || (appMode === 'school' ? '80' : '300')}`, bold: true, size: 24 }),
-                      new TextRun({ text: `\t\t\t\t\t\t${meta.testSeries || (appMode === 'school' ? 'Half-Yearly Exam-2025-26' : 'Test Series-2025-26')}`, bold: true, size: 24 }),
-                      new TextRun({ text: `\t\t\t\t\t\tTime : ${meta.time || (appMode === 'school' ? '3 Hours' : '180 Min.')}`, bold: true, size: 24 }),
+                      ...(appMode === 'school'
+                        ? [
+                            new TextRun({ text: `MM : ${meta.maxMarks || '80'}`, bold: true, size: 24 }),
+                            new TextRun({ text: `\t\t\t\t\t\t${meta.testSeries || 'Half-Yearly Exam-2025-26'}`, bold: true, size: 24 }),
+                            new TextRun({ text: `\t\t\t\t\t\tTime : ${meta.time || '3 Hours'}`, bold: true, size: 24 }),
+                          ]
+                        : [
+                            new TextRun({ text: meta.testSeries || 'Test Series-2025-26', bold: true, size: 24 }),
+                          ]
+                      )
                     ],
                   }),
                   new Paragraph({ text: '' }),
@@ -368,10 +376,8 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px', marginBottom: '15px' }}>
-                <span>MM : {meta.maxMarks || '300'}</span>
+              <div style={{ display: 'flex', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', marginBottom: '15px' }}>
                 <span>{meta.testSeries || 'Test Series-2025-26'}</span>
-                <span>Time : {meta.time || '180 Min.'}</span>
               </div>
 
               <div style={{ border: '1px solid #999', borderRadius: '15px', padding: `${layout.topicsCoveredBoxPadding}px`, background: '#e8e8e8', marginBottom: '20px' }}>
