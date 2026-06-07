@@ -378,23 +378,26 @@ IMPORTANT RULES FOR PARSING AND CLEANING:
    - Strip any duplicate option lists from the question text block.
    - Completely remove page numbers, headers, footers, website watermarks (e.g., "downloaded from ...", "join telegram ..."), exam year metadata, page breaks, or random website scrapings.
 
-2. SIMPLIFY & NORMALIZE PHYSICS AND MATH EXPRESSIONS:
-   - Format equations and variables in a clean, readable, simple format.
-   - Use standard inline math syntax with single dollar signs (e.g., $v = u + at$, $E = mc^2$, $F = G \\\\frac{m_1 m_2}{r^2}$) ONLY for variables, equations, constants, or formulas.
-   - Do NOT wrap normal words, units, or spaces inside math mode (e.g., do NOT write $5 \\\\text{ m/s}$, instead write "5 m/s" or $5$ m/s. Never use LaTeX commands like \\\\text{ ... } inside math blocks).
-   - Use simple unicode symbols directly (e.g. θ, μ, λ, σ, π, α, β, γ, Δ, √, °, ±, ×, /) instead of backslash-heavy LaTeX commands (like \\\\theta, \\\\mu, \\\\lambda, \\\\sqrt, \\\\circ, \\\\times, \\\\pm) to keep equations clean, readable, and JSON-safe.
-   - For simple subscripts and exponents, prefer unicode (e.g. x², 10⁻³, H₂O, F_g) or clean LaTeX ($10^{-3}$, $F_g$, $x^2$) but keep surrounding text in plain English.
-   - Keep sets, curly braces { }, and brackets [ ] as standard plain text characters. Do NOT escape them as \\\\{ or \\\\} unless they are part of a complex LaTeX equation.
+2. MATH & PHYSICS LATEX FORMATTING (CRITICAL):
+   - You MUST format all mathematical and physics variables, equations, constants, formulas, and numeric expressions using standard LaTeX wrapped in single dollar signs ($...$).
+   - Use proper LaTeX commands instead of unicode characters:
+     - Greek letters: Use \\\\theta, \\\\mu, \\\\lambda, \\\\alpha, \\\\beta, \\\\pi, \\\\sigma, \\\\omega, \\\\Delta (e.g., $\\\\theta$, $\\\\mu$).
+     - Fractions: Use \\\\frac{numerator}{denominator} (e.g., $\\\\frac{3}{4}$, $\\\\frac{gx^2}{2u^2\\\\cos^2\\\\theta}$).
+     - Square Roots: Use \\\\sqrt{expression} (e.g., $\\\\sqrt{\\\\frac{3}{4}}$).
+     - Subscripts & Superscripts: Use proper LaTeX underscores and carets (e.g., $v_1$, $v_2$, $u^2$, $\\\\cos^2\\\\theta$).
+     - Trigonometric functions: Use \\\\tan, \\\\cos, \\\\sin (e.g., $\\\\tan\\\\theta$, $\\\\cos^2\\\\theta$).
+     - Multiplication & units: Use \\\\times or plain letters (e.g. $2 \\\\times 10^3$, $30^\\\\circ$).
+   - Do NOT wrap normal words, plain text, or spaces in math mode (e.g., do NOT write $5 \\\\text{ m/s}$, instead write "$5$ m/s" or "5 m/s").
+   - Ensure all backslashes in LaTeX commands are double-escaped as \\\\ in the JSON string (e.g., write \\\\frac, \\\\sqrt, \\\\theta, \\\\cos) so they are valid JSON string escapes.
 
 3. STRICT JSON FORMATTING:
-   - Double-escape any backslashes used in LaTeX (e.g., write \\\\frac or \\\\theta, not \\frac or \\theta) to prevent JSON syntax errors.
    - Respond with VALID JSON ONLY. Do not write any markdown fences (no \`\`\`json), no introductory prose, and no conversational explanation.
 
 JSON Schema to return:
 {
   "questions": [
     {
-      "text": "Question text here (without question number or option text)",
+      "text": "Question text here with LaTeX math enclosed in $...$ (without question numbers or option labels)",
       "type": "${defaultType}",
       "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
       "marks": ${defaultMarks},
