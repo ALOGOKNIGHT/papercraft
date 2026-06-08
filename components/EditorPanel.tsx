@@ -136,6 +136,52 @@ interface Props {
 
 export default function EditorPanel({ questions, setQuestions, meta, setMeta, appMode = 'coaching' }: Props) {
   const [activeSectionId, setActiveSectionId] = useState<string>('A')
+  const [isAiSheetOpen, setIsAiSheetOpen] = useState(false)
+
+  // Image Compression Utility (Change 12)
+  const compressImage = (base64Str: string, maxBytes: number, callback: (compressed: string) => void) => {
+    const img = new Image()
+    img.src = base64Str
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let width = img.width
+      let height = img.height
+
+      const maxDim = 800
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width)
+          width = maxDim
+        } else {
+          width = Math.round((width * maxDim) / height)
+          height = maxDim
+        }
+      }
+
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        callback(base64Str)
+        return
+      }
+
+      ctx.drawImage(img, 0, 0, width, height)
+
+      let quality = 0.8
+      let compressed = canvas.toDataURL('image/jpeg', quality)
+
+      while (compressed.length * 0.75 > maxBytes && quality > 0.1) {
+        quality -= 0.15
+        compressed = canvas.toDataURL('image/jpeg', quality)
+      }
+
+      callback(compressed)
+    }
+    img.onerror = () => {
+      callback(base64Str)
+    }
+  }
 
   // Renaming state
   const [renamingSectionId, setRenamingSectionId] = useState<string | null>(null)
@@ -270,6 +316,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
           setOptions(parsed[0].options)
           setCorrectIndex(0)
           setAiTopic('')
+          setIsAiSheetOpen(false)
           triggerToast('✓ Question loaded into the editor! Review and click "Add to Paper".')
         } else {
           // Multiple questions — add all directly to the paper, no confirmation needed
@@ -288,6 +335,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
             [activeSectionId]: [...(prev[activeSectionId] || []), ...newQs]
           }))
           setAiTopic('')
+          setIsAiSheetOpen(false)
           triggerToast(`✓ Added ${newQs.length} questions to Section ${activeSectionId}!`)
         }
       } else {
@@ -422,8 +470,11 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
     if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
-      setQuestionImage(ev.target?.result as string)
-      triggerToast('✓ Image uploaded successfully!')
+      const base64 = ev.target?.result as string
+      compressImage(base64, 500 * 1024, (compressed) => {
+        setQuestionImage(compressed)
+        triggerToast('✓ Image uploaded successfully!')
+      })
     }
     reader.readAsDataURL(file)
   }
@@ -787,163 +838,226 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
           )}
         </div>
 
-        {/* ── AI Question Generator Card ─────────────────────────── */}
-        <div className="pc-ai-gen-card">
-          <div className="pc-ai-gen-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="material-symbols-outlined">auto_awesome</span>
-              <span>AI Question Generator</span>
-            </div>
-          </div>
+        {/* AI generator rendering function */}
+        {(() => {
+          const renderAiGeneratorForm = (isMobileSheet = false) => (
+            <>
+              {/* Subject Toggle Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</label>
+                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                  {([
+                    { key: 'math',      label: 'Mathematics', icon: 'calculate' },
+                    { key: 'chemistry', label: 'Chemistry',   icon: 'science' },
+                    { key: 'physics',   label: 'Physics',     icon: 'bolt' },
+                  ] as const).map(({ key, label, icon }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={isGenerating}
+                      onClick={() => setAiSubject(key)}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '9px 12px',
+                        borderRadius: '8px',
+                        border: aiSubject === key
+                          ? '1px solid #00f2fe'
+                          : '1px solid rgba(56, 189, 248, 0.12)',
+                        background: aiSubject === key
+                          ? 'rgba(0, 242, 254, 0.1)'
+                          : '#0d121f',
+                        color: aiSubject === key ? '#00f2fe' : '#64748b',
+                        fontSize: '13px',
+                        fontWeight: aiSubject === key ? 700 : 500,
+                        cursor: isGenerating ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.15s ease',
+                        fontFamily: 'inherit',
+                        boxShadow: aiSubject === key ? '0 0 10px rgba(0, 242, 254, 0.12)' : 'none',
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          {/* Subject Toggle Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
-            <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {([
-                { key: 'math',      label: 'Mathematics', icon: 'calculate' },
-                { key: 'chemistry', label: 'Chemistry',   icon: 'science' },
-                { key: 'physics',   label: 'Physics',     icon: 'bolt' },
-              ] as const).map(({ key, label, icon }) => (
-                <button
-                  key={key}
-                  type="button"
+              {/* Row 1: Section and Type selectors */}
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                {/* Target Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '140px' }}>
+                  <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Add to Section</label>
+                  <select
+                    value={activeSectionId}
+                    disabled={isGenerating}
+                    onChange={(e) => setActiveSectionId(e.target.value)}
+                    style={{
+                      background: '#0d121f',
+                      border: '1px solid rgba(56, 189, 248, 0.12)',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
+                      color: '#f8fafc',
+                      fontSize: '13px',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      width: '100%',
+                    }}
+                  >
+                    {sectionsList.map(sec => (
+                      <option key={sec.id} value={sec.id}>Section {sec.id}: {sec.title}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Question Type */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
+                  <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question Type</label>
+                  <select
+                    value={aiQuestionType}
+                    disabled={isGenerating}
+                    onChange={(e) => setAiQuestionType(e.target.value)}
+                    style={{
+                      background: '#0d121f',
+                      border: '1px solid rgba(56, 189, 248, 0.12)',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
+                      color: '#f8fafc',
+                      fontSize: '13px',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      width: '100%',
+                    }}
+                  >
+                    <option value="MCQ">MCQ (Multiple Choice)</option>
+                    <option value="Short Answer">Short Answer</option>
+                    <option value="Long Answer">Long Answer</option>
+                    <option value="Fill in the Blanks">Fill in the Blanks</option>
+                    <option value="Assertion-Reason">Assertion-Reason</option>
+                  </select>
+                </div>
+
+                {/* AI Provider */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px', flex: isMobileSheet ? '1 1 100%' : 'none' }}>
+                  <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Engine</label>
+                  <select
+                    value={aiProvider}
+                    disabled={isGenerating}
+                    onChange={(e) => setAiProvider(e.target.value as 'gemini' | 'groq')}
+                    style={{
+                      background: '#0d121f',
+                      border: '1px solid rgba(56, 189, 248, 0.12)',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
+                      color: '#f8fafc',
+                      fontSize: '13px',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      width: '100%',
+                    }}
+                  >
+                    <option value="gemini">Gemini 3.5</option>
+                    <option value="groq">Groq (Llama)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Text input + generate button */}
+              <div className="pc-ai-gen-form" style={{ display: 'flex', flexDirection: isMobileSheet ? 'column' : 'row', gap: '12px' }}>
+                <textarea
+                  rows={4}
+                  placeholder={appMode === 'school' ? 'Paste one or more questions here (numbered 1. 2. 3. ...) or describe a topic...' : 'Paste competitive questions here (numbered 1. 2. 3. ...) or describe a topic (e.g. Sets and Functions)...'}
+                  className="pc-cyber-textarea"
+                  style={{ flex: 1, resize: 'vertical', minHeight: '80px', fontSize: '13px', width: '100%' }}
+                  value={aiTopic}
                   disabled={isGenerating}
-                  onClick={() => setAiSubject(key)}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: aiSubject === key
-                      ? '1px solid #00f2fe'
-                      : '1px solid rgba(56, 189, 248, 0.12)',
-                    background: aiSubject === key
-                      ? 'rgba(0, 242, 254, 0.1)'
-                      : '#0d121f',
-                    color: aiSubject === key ? '#00f2fe' : '#64748b',
-                    fontSize: '13px',
-                    fontWeight: aiSubject === key ? 700 : 500,
-                    cursor: isGenerating ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.15s ease',
-                    fontFamily: 'inherit',
-                    boxShadow: aiSubject === key ? '0 0 10px rgba(0, 242, 254, 0.12)' : 'none',
-                  }}
+                  onChange={(e) => setAiTopic(e.target.value)}
+                />
+                <button 
+                  type="button" 
+                  onClick={handleAIGenerate} 
+                  disabled={isGenerating}
+                  className="pc-ai-gen-btn"
+                  style={{ opacity: isGenerating ? 0.7 : 1, cursor: isGenerating ? 'not-allowed' : 'pointer', alignSelf: isMobileSheet ? 'stretch' : 'flex-end', width: isMobileSheet ? '100%' : 'auto' }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{icon}</span>
-                  <span>{label}</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                    {isGenerating ? 'pending' : 'auto_awesome'}
+                  </span>
+                  <span>{isGenerating ? 'Parsing...' : 'Parse & Preview'}</span>
                 </button>
-              ))}
-            </div>
-          </div>
+              </div>
+            </>
+          );
 
-          {/* Row 1: Section and Type selectors */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
-            {/* Target Section */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '140px' }}>
-              <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Add to Section</label>
-              <select
-                value={activeSectionId}
-                disabled={isGenerating}
-                onChange={(e) => setActiveSectionId(e.target.value)}
+          return (
+            <>
+              {/* Trigger button for mobile bottom sheet */}
+              <button
+                type="button"
+                onClick={() => setIsAiSheetOpen(true)}
+                className="pc-ai-trigger-btn"
                 style={{
-                  background: '#0d121f',
-                  border: '1px solid rgba(56, 189, 248, 0.12)',
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '12px',
                   borderRadius: '8px',
-                  padding: '10px 12px',
-                  color: '#f8fafc',
-                  fontSize: '13px',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
+                  background: 'rgba(6, 182, 212, 0.08)',
+                  border: '1px dashed #00f2fe',
+                  color: '#00f2fe',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  marginBottom: '24px',
+                  cursor: 'pointer'
                 }}
               >
-                {sectionsList.map(sec => (
-                  <option key={sec.id} value={sec.id}>Section {sec.id}: {sec.title}</option>
-                ))}
-              </select>
-            </div>
+                <span className="material-symbols-outlined">auto_awesome</span>
+                <span>Generate Questions with AI</span>
+              </button>
 
-            {/* Question Type */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
-              <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question Type</label>
-              <select
-                value={aiQuestionType}
-                disabled={isGenerating}
-                onChange={(e) => setAiQuestionType(e.target.value)}
-                style={{
-                  background: '#0d121f',
-                  border: '1px solid rgba(56, 189, 248, 0.12)',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  color: '#f8fafc',
-                  fontSize: '13px',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <option value="MCQ">MCQ (Multiple Choice)</option>
-                <option value="Short Answer">Short Answer</option>
-                <option value="Long Answer">Long Answer</option>
-                <option value="Fill in the Blanks">Fill in the Blanks</option>
-                <option value="Assertion-Reason">Assertion-Reason</option>
-              </select>
-            </div>
+              {/* Inline AI card for desktop */}
+              <div className="pc-ai-gen-card pc-ai-gen-card-inline">
+                <div className="pc-ai-gen-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="material-symbols-outlined">auto_awesome</span>
+                    <span>AI Question Generator</span>
+                  </div>
+                </div>
+                {renderAiGeneratorForm(false)}
+              </div>
 
-            {/* AI Provider */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px' }}>
-              <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Engine</label>
-              <select
-                value={aiProvider}
-                disabled={isGenerating}
-                onChange={(e) => setAiProvider(e.target.value as 'gemini' | 'groq')}
-                style={{
-                  background: '#0d121f',
-                  border: '1px solid rgba(56, 189, 248, 0.12)',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  color: '#f8fafc',
-                  fontSize: '13px',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                <option value="gemini">Gemini 3.5</option>
-                <option value="groq">Groq (Llama)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Row 2: Text input + generate button */}
-          <div className="pc-ai-gen-form">
-            <textarea
-              rows={4}
-              placeholder={appMode === 'school' ? 'Paste one or more questions here (numbered 1. 2. 3. ...) or describe a topic...' : 'Paste competitive questions here (numbered 1. 2. 3. ...) or describe a topic (e.g. Sets and Functions)...'}
-              className="pc-cyber-textarea"
-              style={{ flex: 1, resize: 'vertical', minHeight: '80px', fontSize: '13px' }}
-              value={aiTopic}
-              disabled={isGenerating}
-              onChange={(e) => setAiTopic(e.target.value)}
-            />
-            <button 
-              type="button" 
-              onClick={handleAIGenerate} 
-              disabled={isGenerating}
-              className="pc-ai-gen-btn"
-              style={{ opacity: isGenerating ? 0.7 : 1, cursor: isGenerating ? 'not-allowed' : 'pointer', alignSelf: 'flex-end' }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                {isGenerating ? 'pending' : 'auto_awesome'}
-              </span>
-              <span>{isGenerating ? 'Parsing...' : 'Parse & Preview'}</span>
-            </button>
-          </div>
-        </div>
+              {/* Mobile bottom sheet for AI generator */}
+              {isAiSheetOpen && (
+                <div className="pc-modal-backdrop" onClick={() => setIsAiSheetOpen(false)}>
+                  <div className="pc-modal-card" onClick={(e) => e.stopPropagation()} style={{ background: '#0b111e', border: '1px solid rgba(6, 182, 212, 0.4)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00f2fe', fontWeight: 700 }}>
+                        <span className="material-symbols-outlined">auto_awesome</span>
+                        <span>AI Question Generator</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAiSheetOpen(false)}
+                        style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      >
+                        <span className="material-symbols-outlined">close</span>
+                      </button>
+                    </div>
+                    {renderAiGeneratorForm(true)}
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         {/* ── Question Input Form ────────────────────────────────── */}
         <div className="pc-editor-field-wrapper">

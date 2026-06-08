@@ -518,7 +518,7 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
 
       {/* Match the Column */}
       {selectedType === 'Match the Column' && (
-        <div style={{ display: 'flex', gap: '16px' }}>
+        <div className="pc-school-match-container" style={{ display: 'flex', gap: '16px' }}>
           {/* Column A */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#00f2fe', textTransform: 'uppercase' }}>Column A</div>
@@ -565,9 +565,9 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
   )
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 76px)', overflow: 'hidden' }}>
+    <div className="pc-school-editor-container" style={{ display: 'flex', height: 'calc(100vh - 76px)', overflow: 'hidden' }}>
       {/* ── LEFT SIDEBAR ──────────────────────────────────────── */}
-      <aside style={{
+      <aside className="pc-school-editor-sidebar" style={{
         width: '260px', minWidth: '260px', background: '#070c15',
         borderRight: '1px solid rgba(56, 189, 248, 0.08)', display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
@@ -704,7 +704,7 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
       </aside>
 
       {/* ── MAIN CONTENT AREA ─────────────────────────────────── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px', background: '#0a0f1a' }}>
+      <div className="pc-school-editor-main" style={{ flex: 1, overflowY: 'auto', padding: '24px 32px', background: '#0a0f1a' }}>
 
         {/* Section header */}
         <div style={{ marginBottom: '24px' }}>
@@ -778,7 +778,7 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
         </div>
 
         {/* Question Type Selector */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <div className="pc-school-qtype-selector" style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
           {SCHOOL_QUESTION_TYPES.map(t => (
             <button
               key={t}
@@ -856,7 +856,7 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
           )}
 
           {/* Action buttons */}
-          <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+          <div className="pc-school-action-buttons" style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
             <button
               onClick={handleAdd}
               style={{
@@ -960,7 +960,7 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
                       {q.text || (q.type === 'Match the Column' ? 'Match the following' : '')}
                     </div>
                     {q.type === 'MCQ' && q.options.length > 0 && (
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
+                      <div className="pc-school-added-q-mcq-options" style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
                         {q.options.map((opt, i) => (
                           <span key={i} style={{ fontSize: '11px', color: '#94a3b8', background: 'rgba(255,255,255,0.03)', padding: '2px 8px', borderRadius: '4px' }}>
                             {String.fromCharCode(65 + i)}) {opt.length > 30 ? opt.slice(0, 30) + '...' : opt}

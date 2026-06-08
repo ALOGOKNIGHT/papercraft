@@ -1423,11 +1423,307 @@ body {
   }
 }
 
-@media (max-width: 800px) {
+/* ── Scrollbar Hide Helper ──────────────────────────────────── */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── App Shell Zoom Controls ────────────────────────────────── */
+.dark-workspace {
+  touch-action: pan-x pan-y; /* Disable pinch zoom on app shell */
+}
+.paper-sheet {
+  touch-action: auto !important; /* Enable pinch zoom inside preview */
+}
+
+/* ── Responsive Modals (Change 8) ───────────────────────────── */
+.pc-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+.pc-modal-card {
+  background: #0b111e;
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  box-shadow: 0 0 35px rgba(6, 182, 212, 0.15);
+  border-radius: 16px;
+  padding: 24px;
+  width: 450px;
+  max-width: 90%;
+  box-sizing: border-box;
+}
+
+/* ── School Editor Layout Responsive Overrides ────────────────── */
+.pc-school-editor-container {
+  display: flex;
+  height: calc(100vh - 76px);
+  overflow: hidden;
+  width: 100%;
+}
+.pc-school-editor-sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: #070c15;
+  border-right: 1px solid rgba(56, 189, 248, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pc-school-editor-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+  background: #0a0f1a;
+}
+
+/* ── Slide Up Anim ─────────────────────────────────────────── */
+@keyframes slideUpModal {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-slideup {
+  animation: slideUpModal 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Responsive: Mobile & Tablet (Change 1-12) ────────────────── */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .pc-design-shell {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+  }
+}
+
+@media (max-width: 1100px) {
   .pc-design-shell {
     grid-template-columns: 1fr;
   }
-  .pc-design-preview {
+  .pc-design-sidebar {
     display: none;
   }
+  .pc-design-preview {
+    border-left: none;
+    border-top: 1px solid rgba(56, 189, 248, 0.08);
+    position: static;
+    height: auto;
+    max-height: none;
+  }
+  .pc-design-center {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Typography and Spacing (Change 9) */
+  body {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+  h1 { font-size: 24px !important; }
+  h2 { font-size: 18px !important; }
+  h3 { font-size: 15px !important; }
+  
+  .dark-workspace .pc-cyber-card {
+    padding: 16px !important;
+    border-radius: 16px !important;
+  }
+  .dark-workspace .pc-cyber-label {
+    font-size: 11px !important;
+  }
+  .dark-workspace .pc-cyber-kicker {
+    font-size: 11px !important;
+  }
+  
+  /* Touch and Interaction Targets (Change 10) */
+  button, 
+  a, 
+  input, 
+  select, 
+  textarea,
+  .pc-custom-radio,
+  .pc-nav-tab,
+  .pc-avatar-btn,
+  .pc-icon-btn {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  .dark-workspace .pc-cyber-input,
+  .dark-workspace select.pc-cyber-input {
+    min-height: 48px !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+  
+  /* Touch Pressed State Feedback */
+  button:active,
+  a:active,
+  .pc-custom-radio:active,
+  .pc-nav-tab:active {
+    opacity: 0.75 !important;
+    transform: scale(0.98) !important;
+  }
+  
+  /* Remove Hover Transforms */
+  button:hover,
+  a:hover,
+  .pc-cyber-btn-outline:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Modals to Bottom Sheets (Change 8) */
+  .pc-modal-backdrop {
+    align-items: flex-end !important;
+  }
+  .pc-modal-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 24px 24px 0 0 !important;
+    border-bottom: none !important;
+    padding: 24px 16px !important;
+    margin: 0 !important;
+    animation: slideUpModal 0.28s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+  }
+  .pc-modal-card input,
+  .pc-modal-card select,
+  .pc-modal-card button {
+    min-height: 48px !important;
+  }
+
+  /* Design Page Stacking (Change 5) */
+  .pc-design-shell {
+    grid-template-columns: 1fr !important;
+  }
+  .pc-design-sidebar {
+    display: none !important;
+  }
+  .pc-design-center {
+    display: none !important; /* Hide preview by default on mobile */
+  }
+  .pc-design-preview {
+    display: block !important;
+    width: 100% !important;
+    border-left: none !important;
+    padding: 16px !important;
+    height: auto !important;
+    position: static !important;
+  }
+
+  /* Question Editor Stacking (Change 4) */
+  .dark-workspace .pc-editor-container {
+    grid-template-columns: 1fr !important;
+    min-height: auto !important;
+  }
+  .dark-workspace .pc-editor-sidebar {
+    border-right: none !important;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.08) !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 16px !important;
+  }
+  
+  /* School Editor Stacking overrides */
+  .pc-school-editor-container {
+    flex-direction: column !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .pc-school-editor-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.08) !important;
+  }
+  .pc-school-editor-main {
+    padding: 16px !important;
+  }
+
+  /* School Editor type selector horizontal scroll (Change 4) */
+  .pc-school-qtype-selector {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none !important;
+    padding-bottom: 8px !important;
+    width: 100% !important;
+  }
+  .pc-school-qtype-selector::-webkit-scrollbar {
+    display: none !important;
+  }
+  .pc-school-qtype-selector button {
+    flex-shrink: 0 !important;
+  }
+
+  /* School Editor Match Column Stacking */
+  .pc-school-match-container {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  /* School Editor Action Buttons Stacking */
+  .pc-school-action-buttons {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .pc-school-action-buttons button {
+    width: 100% !important;
+  }
+
+  /* School Editor Added Questions MCQ options */
+  .pc-school-added-q-mcq-options {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  /* Responsive AI Generator Card and Buttons (Change 4) */
+  .pc-ai-gen-card-inline {
+    display: none !important;
+  }
+  .pc-ai-trigger-btn {
+    display: flex !important;
+  }
+  
+  /* Stacking MCQ Options vertically on mobile */
+  .dark-workspace .pc-option-row {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .dark-workspace .pc-option-input-wrapper {
+    flex: 1 1 100% !important;
+    order: 1 !important;
+  }
+  .dark-workspace .pc-custom-radio {
+    order: 2 !important;
+  }
+  .dark-workspace .pc-option-remove {
+    order: 3 !important;
+    margin-left: auto !important;
+  }
+
+  /* Stacking Bottom Actions vertically on mobile */
+  .dark-workspace .pc-action-divider {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .dark-workspace .pc-capsule-btn-primary,
+  .dark-workspace .pc-capsule-btn-secondary {
+    width: 100% !important;
+  }
+}
+
+/* Desktop default styling to hide trigger button */
+.pc-ai-trigger-btn {
+  display: none !important;
 }

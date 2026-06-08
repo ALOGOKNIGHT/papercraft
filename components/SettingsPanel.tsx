@@ -27,6 +27,100 @@ export default function SettingsPanel({
   const topicsRef = useRef<HTMLTextAreaElement>(null)
   const instRef = useRef<HTMLTextAreaElement>(null)
 
+  // Local states for input debouncing (Change 12)
+  const [localMeta, setLocalMeta] = useState<PaperMeta>(meta)
+  const [localPaperName, setLocalPaperName] = useState(paperName)
+
+  useEffect(() => {
+    setLocalMeta(meta)
+  }, [meta])
+
+  useEffect(() => {
+    setLocalPaperName(paperName)
+  }, [paperName])
+
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const paperNameDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const debouncedOnChange = (updatedMeta: PaperMeta) => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => {
+      onChange(updatedMeta)
+    }, 300)
+  }
+
+  const debouncedOnPaperNameChange = (newName: string) => {
+    if (paperNameDebounceTimerRef.current) clearTimeout(paperNameDebounceTimerRef.current)
+    paperNameDebounceTimerRef.current = setTimeout(() => {
+      onPaperNameChange(newName)
+    }, 300)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+      if (paperNameDebounceTimerRef.current) clearTimeout(paperNameDebounceTimerRef.current)
+    }
+  }, [])
+
+  const handleLocalChange = (key: keyof PaperMeta, value: any) => {
+    const updated = { ...localMeta, [key]: value }
+    setLocalMeta(updated)
+    debouncedOnChange(updated)
+  }
+
+  const handleInstantChange = (key: keyof PaperMeta, value: any) => {
+    const updated = { ...localMeta, [key]: value }
+    setLocalMeta(updated)
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    onChange(updated)
+  }
+
+  // Image Compression Utility (Change 12)
+  const compressImage = (base64Str: string, maxBytes: number, callback: (compressed: string) => void) => {
+    const img = new Image()
+    img.src = base64Str
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let width = img.width
+      let height = img.height
+
+      const maxDim = 800
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width)
+          width = maxDim
+        } else {
+          width = Math.round((width * maxDim) / height)
+          height = maxDim
+        }
+      }
+
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        callback(base64Str)
+        return
+      }
+
+      ctx.drawImage(img, 0, 0, width, height)
+
+      let quality = 0.8
+      let compressed = canvas.toDataURL('image/jpeg', quality)
+
+      while (compressed.length * 0.75 > maxBytes && quality > 0.1) {
+        quality -= 0.15
+        compressed = canvas.toDataURL('image/jpeg', quality)
+      }
+
+      callback(compressed)
+    }
+    img.onerror = () => {
+      callback(base64Str)
+    }
+  }
+
   const insertBoldText = (textareaRef: React.RefObject<HTMLTextAreaElement>, key: keyof PaperMeta) => {
     const el = textareaRef.current
     if (!el) return
@@ -42,7 +136,7 @@ export default function SettingsPanel({
     const replacement = `**${selectedText || 'bold text'}**`
     const newValue = before + replacement + after
 
-    onChange({ ...meta, [key]: newValue })
+    handleInstantChange(key, newValue)
 
     setTimeout(() => {
       el.focus()
@@ -65,12 +159,12 @@ export default function SettingsPanel({
   }, [toastMsg])
 
   const removeLogoBackground = () => {
-    if (!meta.logo) return
+    if (!localMeta.logo) return
 
-    triggerToast('âœ¦ Removing logo background and converting to transparent PNG...')
+    triggerToast('✦ Removing logo background and converting to transparent PNG...')
 
     const img = new Image()
-    img.src = meta.logo
+    img.src = localMeta.logo
     img.onload = () => {
       const canvas = document.createElement('canvas')
       canvas.width = img.width
@@ -103,50 +197,41 @@ export default function SettingsPanel({
 
       ctx.putImageData(imgData, 0, 0)
       const transparentBase64 = canvas.toDataURL('image/png')
-      onChange({ ...meta, logo: transparentBase64 })
-      triggerToast('âœ“ Logo background successfully removed!')
+      handleInstantChange('logo', transparentBase64)
+      triggerToast('✓ Logo background successfully removed!')
     }
     img.onerror = () => {
-      triggerToast('âœ• Failed to process logo background removal.')
+      triggerToast('✕ Failed to process logo background removal.')
     }
   }
-
-  const set =
-    (key: keyof PaperMeta) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      onChange({ ...meta, [key]: e.target.value })
 
   const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = (ev) => onChange({ ...meta, logo: ev.target?.result as string })
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result as string
+      // Compress to max 500KB
+      compressImage(base64, 500 * 1024, (compressed) => {
+        handleInstantChange('logo', compressed)
+      })
+    }
     reader.readAsDataURL(file)
   }
 
-  // School mode: handle select change for class dropdown
-  const handleSelectChange = (key: keyof PaperMeta) => (e: React.ChangeEvent<HTMLSelectElement>) =>
-    onChange({ ...meta, [key]: e.target.value })
-
   const renderPaperNameInput = () => (
-    <div className="pc-cyber-card" style={{ padding: '20px 24px', marginBottom: '24px' }}>
+    <div className="pc-cyber-card" style={{ padding: '16px 20px', marginBottom: '24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderBottom: '2px solid rgba(0, 242, 254, 0.3)', paddingBottom: '12px', transition: 'border-color 0.2s' }}>
         <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#00f2fe', flexShrink: 0 }}>description</span>
         <input
           type="text"
-          value={paperName}
-          onChange={(e) => onPaperNameChange(e.target.value)}
-          placeholder="Enter paper name e.g. Class X Math Pre-Board 2025"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            fontSize: '22px',
-            fontWeight: 'bold',
-            color: '#fff',
-            width: '100%',
-            fontFamily: 'inherit',
+          value={localPaperName}
+          onChange={(e) => {
+            setLocalPaperName(e.target.value)
+            debouncedOnPaperNameChange(e.target.value)
           }}
+          placeholder="Enter paper name e.g. Class X Math Pre-Board 2025"
+          className="text-lg md:text-2xl font-bold text-white bg-transparent border-none outline-none w-full"
         />
         <span className="material-symbols-outlined" style={{ fontSize: '22px', color: '#64748b', flexShrink: 0 }}>edit</span>
       </div>
@@ -162,7 +247,7 @@ export default function SettingsPanel({
   // â”€â”€ SCHOOL MODE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (appMode === 'school') {
     return (
-      <div style={{ maxWidth: 800, margin: '0 auto' }} className="space-y-6 animate-fadeup delay-1">
+      <div style={{ maxWidth: 800, margin: '0 auto' }} className="space-y-6 animate-fadeup delay-1 pb-24 md:pb-0">
         {renderPaperNameInput()}
 
         {/* â”€â”€ Card 1: School Identity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
@@ -178,10 +263,10 @@ export default function SettingsPanel({
             className="pc-cyber-upload"
             onClick={() => logoRef.current?.click()}
           >
-            {meta.logo ? (
+            {localMeta.logo ? (
               <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                 <img
-                  src={meta.logo}
+                  src={localMeta.logo}
                   alt="logo preview"
                   style={{ maxHeight: 110, maxWidth: '100%', objectFit: 'contain', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '6px' }}
                 />
@@ -204,20 +289,20 @@ export default function SettingsPanel({
                 </div>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onChange({ ...meta, logo: null }) }}
+                  onClick={(e) => { e.stopPropagation(); handleInstantChange('logo', null) }}
                   style={{
                     position: 'absolute', top: -10, right: -10, background: 'rgba(239, 68, 68, 0.9)',
                     color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
                     cursor: 'pointer', zIndex: 20
                   }}
-                >âœ•</button>
+                >✕</button>
               </div>
             ) : (
               <>
                 <span className="material-symbols-outlined pc-cyber-upload-icon">cloud_upload</span>
                 <p>Click or drag to upload school logo / crest</p>
-                <span>PNG / JPG (Recommended: 200Ã—200px)</span>
+                <span>PNG / JPG (Recommended: 200×200px)</span>
               </>
             )}
           </div>
@@ -230,8 +315,8 @@ export default function SettingsPanel({
               className="pc-cyber-input"
               type="text"
               placeholder='e.g. Delhi Public School'
-              value={meta.schoolName}
-              onChange={set('schoolName')}
+              value={localMeta.schoolName || ''}
+              onChange={(e) => handleLocalChange('schoolName', e.target.value)}
             />
             <span className="material-symbols-outlined pc-cyber-input-icon">school</span>
           </div>
@@ -243,8 +328,8 @@ export default function SettingsPanel({
               className="pc-cyber-input"
               type="text"
               placeholder='e.g. Sail Township, Ranchi'
-              value={meta.schoolBranch || ''}
-              onChange={(e) => onChange({ ...meta, schoolBranch: e.target.value })}
+              value={localMeta.schoolBranch || ''}
+              onChange={(e) => handleLocalChange('schoolBranch', e.target.value)}
             />
             <span className="material-symbols-outlined pc-cyber-input-icon">location_on</span>
           </div>
@@ -264,8 +349,8 @@ export default function SettingsPanel({
               className="pc-cyber-input"
               type="text"
               placeholder='e.g. Pre Board - I Examination (2024-2025)'
-              value={meta.examTitle}
-              onChange={set('examTitle')}
+              value={localMeta.examTitle || ''}
+              onChange={(e) => handleLocalChange('examTitle', e.target.value)}
             />
             <span className="material-symbols-outlined pc-cyber-input-icon">assignment</span>
           </div>
@@ -277,8 +362,8 @@ export default function SettingsPanel({
               <label className="pc-cyber-label">Class</label>
               <select
                 className="pc-cyber-input"
-                value={meta.className}
-                onChange={handleSelectChange('className')}
+                value={localMeta.className || ''}
+                onChange={(e) => handleInstantChange('className', e.target.value)}
                 style={{ appearance: 'none', cursor: 'pointer' }}
               >
                 <option value="">Select Class</option>
@@ -296,8 +381,8 @@ export default function SettingsPanel({
                 className="pc-cyber-input"
                 type="text"
                 placeholder='e.g. Mathematics (Standard)'
-                value={meta.subject}
-                onChange={set('subject')}
+                value={localMeta.subject || ''}
+                onChange={(e) => handleLocalChange('subject', e.target.value)}
               />
               <span className="material-symbols-outlined pc-cyber-input-icon">menu_book</span>
             </div>
@@ -309,8 +394,8 @@ export default function SettingsPanel({
                 className="pc-cyber-input"
                 type="text"
                 placeholder='e.g. 3 Hrs.'
-                value={meta.time}
-                onChange={set('time')}
+                value={localMeta.time || ''}
+                onChange={(e) => handleLocalChange('time', e.target.value)}
               />
               <span className="material-symbols-outlined pc-cyber-input-icon">schedule</span>
             </div>
@@ -322,8 +407,8 @@ export default function SettingsPanel({
                 className="pc-cyber-input"
                 type="number"
                 placeholder='e.g. 80'
-                value={meta.maxMarks}
-                onChange={set('maxMarks')}
+                value={localMeta.maxMarks || ''}
+                onChange={(e) => handleLocalChange('maxMarks', e.target.value)}
               />
               <span className="material-symbols-outlined pc-cyber-input-icon">star</span>
             </div>
@@ -359,7 +444,7 @@ export default function SettingsPanel({
                 {/* Load default school instructions */}
                 <button
                   type="button"
-                  onClick={() => onChange({ ...meta, instructions: DEFAULT_SCHOOL_INSTRUCTIONS })}
+                  onClick={() => handleInstantChange('instructions', DEFAULT_SCHOOL_INSTRUCTIONS)}
                   style={{
                     background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer',
                     fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px',
@@ -375,12 +460,12 @@ export default function SettingsPanel({
               </div>
               <textarea
                 ref={instRef}
-                className="pc-cyber-textarea"
+                className="pc-cyber-textarea pc-instructions-textarea"
                 style={{ borderRadius: '0 0 8px 8px', borderTop: 'none' }}
                 placeholder="Write instructions... one per line. These appear on the paper header."
                 rows={10}
-                value={meta.instructions}
-                onChange={set('instructions')}
+                value={localMeta.instructions || ''}
+                onChange={(e) => handleLocalChange('instructions', e.target.value)}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
@@ -418,12 +503,12 @@ export default function SettingsPanel({
     )
   }
 
-  // â”€â”€ COACHING MODE (original, unchanged) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── COACHING MODE (original, unchanged) ───────────────────────
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto' }} className="space-y-6 animate-fadeup delay-1">
+    <div style={{ maxWidth: 800, margin: '0 auto' }} className="space-y-6 animate-fadeup delay-1 pb-24 md:pb-0">
       {renderPaperNameInput()}
 
-      {/* â”€â”€ Card 1: Header logo upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Card 1: Header logo upload ─────────────────────────── */}
       <div className="pc-cyber-card">
         <p className="pc-cyber-kicker">HEADER SMALL LOGO &amp; SAMPLE</p>
 
@@ -431,10 +516,10 @@ export default function SettingsPanel({
           className="pc-cyber-upload"
           onClick={() => logoRef.current?.click()}
         >
-          {meta.logo ? (
+          {localMeta.logo ? (
             <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
               <img
-                src={meta.logo}
+                src={localMeta.logo}
                 alt="logo preview"
                 style={{ maxHeight: 110, maxWidth: '100%', objectFit: 'contain', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '6px' }}
               />
@@ -474,7 +559,7 @@ export default function SettingsPanel({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onChange({ ...meta, logo: null });
+                  handleInstantChange('logo', null);
                 }}
                 style={{
                   position: 'absolute',
@@ -494,14 +579,14 @@ export default function SettingsPanel({
                   zIndex: 20
                 }}
               >
-                âœ•
+                ✕
               </button>
             </div>
           ) : (
             <>
               <span className="material-symbols-outlined pc-cyber-upload-icon">cloud_upload</span>
               <p>Click or drag to upload school logo</p>
-              <span>PNG / JPG (Recommended: 200Ã—200px)</span>
+              <span>PNG / JPG (Recommended: 200×200px)</span>
             </>
           )}
         </div>
@@ -514,7 +599,7 @@ export default function SettingsPanel({
         />
       </div>
 
-      {/* â”€â”€ Card 2: Exam details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Card 2: Exam details ─────────────────────────────────── */}
       <div className="pc-cyber-card">
         {/* Accent Title */}
         <div className="pc-cyber-title-wrapper">
@@ -530,8 +615,8 @@ export default function SettingsPanel({
               className="pc-cyber-input"
               type="text"
               placeholder="e.g. 23/10/2025"
-              value={meta.examDate || ''}
-              onChange={set('examDate')}
+              value={localMeta.examDate || ''}
+              onChange={(e) => handleLocalChange('examDate', e.target.value)}
             />
             <span className="material-symbols-outlined pc-cyber-input-icon">event</span>
           </div>
@@ -542,8 +627,8 @@ export default function SettingsPanel({
               className="pc-cyber-input"
               type="text"
               placeholder="e.g. Part Test-1 or JEE Crash Course"
-              value={meta.testSeries || ''}
-              onChange={set('testSeries')}
+              value={localMeta.testSeries || ''}
+              onChange={(e) => handleLocalChange('testSeries', e.target.value)}
             />
             <span className="material-symbols-outlined pc-cyber-input-icon">library_books</span>
           </div>
@@ -554,8 +639,8 @@ export default function SettingsPanel({
               className="pc-cyber-input"
               type="text"
               placeholder="e.g. 300 or 720"
-              value={meta.maxMarks}
-              onChange={set('maxMarks')}
+              value={localMeta.maxMarks || ''}
+              onChange={(e) => handleLocalChange('maxMarks', e.target.value)}
             />
             <span className="material-symbols-outlined pc-cyber-input-icon">star</span>
           </div>
@@ -566,8 +651,8 @@ export default function SettingsPanel({
               className="pc-cyber-input"
               type="text"
               placeholder="e.g. 180 Min. or 3 Hours"
-              value={meta.time}
-              onChange={set('time')}
+              value={localMeta.time || ''}
+              onChange={(e) => handleLocalChange('time', e.target.value)}
             />
             <span className="material-symbols-outlined pc-cyber-input-icon">schedule</span>
           </div>
@@ -610,8 +695,8 @@ export default function SettingsPanel({
               style={{ borderRadius: '0 0 8px 8px', borderTop: 'none' }}
               placeholder="Write one topic per line... Highlight text and click 'Bold' above."
               rows={3}
-              value={meta.topicsCovered || ''}
-              onChange={set('topicsCovered')}
+              value={localMeta.topicsCovered || ''}
+              onChange={(e) => handleLocalChange('topicsCovered', e.target.value)}
             />
           </div>
           <span style={{ fontSize: '11px', color: '#64748b', marginTop: '6px', display: 'block' }}>
@@ -652,12 +737,12 @@ export default function SettingsPanel({
             </div>
             <textarea
               ref={instRef}
-              className="pc-cyber-textarea"
+              className="pc-cyber-textarea pc-instructions-textarea"
               style={{ borderRadius: '0 0 8px 8px', borderTop: 'none' }}
               placeholder="Write instructions... Highlight text and click 'Bold' above."
               rows={10}
-              value={meta.instructions}
-              onChange={set('instructions')}
+              value={localMeta.instructions}
+              onChange={(e) => handleLocalChange('instructions', e.target.value)}
             />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>

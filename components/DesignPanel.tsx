@@ -377,7 +377,7 @@ export default function DesignPanel({ meta, layout, questions, onLayoutChange, a
           {activeNav === 'layout' && (
             <>
               <Section title="Layout Settings" icon="grid_view">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                   <div>
                     <label style={cyberLabel}>Page Size</label>
                     <select value={layout.pageSize} onChange={(e) => set('pageSize')(e.target.value)} style={cyberInput}>
@@ -396,7 +396,7 @@ export default function DesignPanel({ meta, layout, questions, onLayoutChange, a
                 </div>
 
                 <label style={cyberLabel}>Margins (mm)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                   {[
                     ['marginTop', 'Top'],
                     ['marginBottom', 'Bottom'],

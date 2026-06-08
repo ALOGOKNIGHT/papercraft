@@ -51,11 +51,11 @@ const defaultQuestions: QuestionsMap = {
   B: []
 }
 
-const tabs: { id: Tab; label: string }[] = [
-  { id: 'settings', label: 'Setup' },
-  { id: 'editor',   label: 'Editor' },
-  { id: 'design',   label: 'Design' },
-  { id: 'preview',  label: 'Preview' },
+const tabs: { id: Tab; label: string; icon: string }[] = [
+  { id: 'settings', label: 'Setup', icon: 'settings' },
+  { id: 'editor',   label: 'Editor', icon: 'edit' },
+  { id: 'design',   label: 'Design', icon: 'palette' },
+  { id: 'preview',  label: 'Preview', icon: 'visibility' },
 ]
 
 export default function Home() {
@@ -65,6 +65,7 @@ export default function Home() {
   const [questions, setQuestions] = useState<QuestionsMap>(defaultQuestions)
   const [appMode, setAppMode]   = useState<'school' | 'coaching'>('coaching')
   const [showModeDropdown, setShowModeDropdown] = useState(false)
+  const [showMobilePreviewSheet, setShowMobilePreviewSheet] = useState(false)
 
   // Paper Management states
   const [isLoaded, setIsLoaded] = useState(false)
@@ -346,15 +347,15 @@ export default function Home() {
       <div>
         {/* ── Topbar ─────────────────────────────────────────────── */}
         <header className="pc-topbar no-print sticky top-0 z-50">
-          <div className="pc-topbar-inner" style={{ maxWidth: '100%', padding: '0 24px', height: '76px' }}>
+          <div className="pc-topbar-inner flex items-center justify-between gap-4 h-12 md:h-[76px] px-4 md:px-6 w-full" style={{ maxWidth: '100%' }}>
             {/* Brand and Paper Name */}
             <div className="pc-brand" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div 
                 className="pc-brand-mark" 
                 style={{ 
-                  width: '38px', 
-                  height: '38px', 
-                  borderRadius: '10px', 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '8px', 
                   background: 'linear-gradient(135deg, #0ea5e9, #8b5cf6)', 
                   display: 'grid', 
                   placeItems: 'center',
@@ -368,11 +369,10 @@ export default function Home() {
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', maxWidth: '180px' }}>
-                <span className="pc-brand-name" style={{ fontSize: '18px', lineHeight: '1.1' }}>Papercraft</span>
+                <span className="pc-brand-name text-sm md:text-lg" style={{ lineHeight: '1.1' }}>Papercraft</span>
                 <span 
-                  className="pc-brand-sub" 
+                  className="pc-brand-sub text-[9px] md:text-[10px]" 
                   style={{ 
-                    fontSize: '10px', 
                     lineHeight: '1.2', 
                     color: '#00f2fe',
                     overflow: 'hidden',
@@ -387,8 +387,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Library link between brand logo and tabs */}
-            <div style={{ display: 'flex', alignItems: 'center' }}>
+            {/* Library link between brand logo and tabs (desktop only) */}
+            <div className="hidden md:flex items-center">
               <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.15)', marginRight: '16px' }} />
               <Link 
                 href="/library" 
@@ -411,23 +411,24 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Nav links (Center tabs) */}
-            <nav className="pc-topbar-nav" style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+            {/* Nav links (Center tabs - tablet/desktop only) */}
+            <nav className="pc-topbar-nav hidden md:flex" style={{ gap: '8px', alignItems: 'center', flex: 1, justifyContent: 'center' }}>
               {tabs.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setTab(item.id)}
-                  className={`pc-nav-tab ${tab === item.id ? 'active' : ''}`}
+                  className={`pc-nav-tab ${tab === item.id ? 'active' : ''} flex items-center gap-1.5 px-3 py-1.5`}
                 >
-                  {item.label}
+                  <span className="material-symbols-outlined text-[18px] lg:hidden">{item.icon}</span>
+                  <span>{item.label}</span>
                 </button>
               ))}
             </nav>
 
             {/* Actions (Right section) */}
-            <div className="pc-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              {/* Auto-save status indicator */}
-              <div style={{ display: 'flex', alignItems: 'center', marginRight: '4px' }}>
+            <div className="pc-topbar-actions flex items-center gap-3 md:gap-4">
+              {/* Auto-save status indicator (desktop only) */}
+              <div className="hidden md:flex items-center" style={{ marginRight: '4px' }}>
                 {autoSaveStatus === 'saving' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fbbf24', fontSize: '11px', fontWeight: 600 }}>
                     <span className="material-symbols-outlined spin-animation" style={{ fontSize: '15px' }}>sync</span>
@@ -451,31 +452,33 @@ export default function Home() {
               </div>
 
               {/* Question pill badge */}
-              <div className="pc-q-pill">
+              <div className="pc-q-pill" style={{ padding: '4px 10px' }}>
                 <span className="pc-q-pill-dot" />
-                <span style={{ fontSize: '11px', fontWeight: 700, lineHeight: 1.1, textAlign: 'left' }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, lineHeight: 1.1, textAlign: 'left' }}>
                   {totalQuestions} Q<br />added
                 </span>
               </div>
 
-              {/* Print / PDF Button */}
-              <button onClick={handlePrint} className="pc-print-btn">
+              {/* Print / PDF Button (tablet/desktop only) */}
+              <button onClick={handlePrint} className="pc-print-btn hidden md:flex" style={{ alignItems: 'center', gap: '8px' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>print</span>
-                <span>Print / PDF</span>
+                <span className="hidden lg:inline">Print / PDF</span>
               </button>
 
-              {/* New Paper Button */}
+              {/* New Paper Button (tablet/desktop only) */}
               <button 
                 onClick={handleNewPaperClick} 
-                className="pc-print-btn"
+                className="pc-print-btn hidden md:flex"
                 style={{
                   background: 'rgba(56, 189, 248, 0.08)',
                   border: '1px dashed rgba(56, 189, 248, 0.3)',
-                  color: '#0ea5e9'
+                  color: '#0ea5e9',
+                  alignItems: 'center',
+                  gap: '8px'
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
-                <span>New Paper</span>
+                <span className="hidden lg:inline">New Paper</span>
               </button>
 
               {/* Avatar circle repurposed as Mode Switcher */}
@@ -522,6 +525,31 @@ export default function Home() {
                     >
                       <div style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '4px', textAlign: 'left' }}>
                         Select Workspace Mode
+                      </div>
+
+                      {/* Mobile Only: Library Link inside avatar dropdown */}
+                      <div className="md:hidden border-b border-[rgba(56,189,248,0.12)] pb-3 mb-1">
+                        <Link 
+                          href="/library" 
+                          onClick={() => setShowModeDropdown(false)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '10px 12px',
+                            borderRadius: '10px',
+                            background: 'rgba(6, 182, 212, 0.08)',
+                            border: '1px solid rgba(6, 182, 212, 0.2)',
+                            cursor: 'pointer',
+                            textDecoration: 'none'
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '24px', color: '#00f2fe' }}>folder_open</span>
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>Paper Library</span>
+                            <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px', lineHeight: '1.3' }}>View and manage saved papers</span>
+                          </div>
+                        </Link>
                       </div>
 
                       {/* School Mode Option */}
@@ -597,8 +625,25 @@ export default function Home() {
           </div>
         </header>
 
-        {/* ── Main ─────────────────────────────────────────────── */}
-        <main className={`pc-main ${(tab === 'preview' || tab === 'editor' || tab === 'design') ? 'p-0' : ''}`} style={{ padding: (tab === 'preview' || tab === 'editor' || tab === 'design') ? '0' : '48px 24px' }}>
+        {/* Horizontal scrollable step progress bar below header (mobile only, Change 1) */}
+        <div className="md:hidden flex items-center overflow-x-auto whitespace-nowrap py-3 px-4 border-b border-[rgba(56,189,248,0.12)] bg-[#0d1321] gap-2 justify-between scrollbar-none no-print">
+          {tabs.map((t, idx) => (
+            <span key={t.id} className="flex items-center gap-2">
+              {idx > 0 && <span className="text-gray-600 text-xs">→</span>}
+              <button
+                onClick={() => setTab(t.id)}
+                className={`text-xs font-bold tracking-wide uppercase transition-all duration-200 ${
+                  tab === t.id ? 'text-[#00f2fe] border-b border-[#00f2fe] pb-0.5' : 'text-gray-400'
+                }`}
+              >
+                {`0${idx + 1} ${t.label}`}
+              </button>
+            </span>
+          ))}
+        </div>
+
+        {/* ── Main (padding-bottom increased on mobile to clear sticky bottom actions) ──────────────── */}
+        <main className={`pc-main flex-1 w-full ${(tab === 'preview' || tab === 'editor' || tab === 'design') ? 'p-0' : 'px-4 py-8 md:px-8 md:py-12'} pb-24 md:pb-6`}>
           {tab === 'settings' && (
             <SettingsPanel 
               meta={meta} 
@@ -625,12 +670,12 @@ export default function Home() {
         </main>
       </div>
 
-      {/* ── Modals for Document Management ───────────────────── */}
+      {/* ── Modals for Document Management (Change 8 bottom sheets) ───────────────────── */}
 
       {/* ── Unsaved Changes Warning Modal ────────────────────── */}
       {showUnsavedWarningModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
-          <div className="pc-cyber-card animate-fadeup" style={{ width: '450px', padding: '24px', background: '#0b111e', border: '1px solid rgba(239, 68, 68, 0.4)', boxShadow: '0 0 30px rgba(239, 68, 68, 0.15)' }}>
+        <div className="pc-modal-backdrop" onClick={() => setShowUnsavedWarningModal(false)}>
+          <div className="pc-modal-card animate-fadeup" style={{ border: '1px solid rgba(239, 68, 68, 0.4)', boxShadow: '0 0 30px rgba(239, 68, 68, 0.15)' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <span className="material-symbols-outlined" style={{ color: '#ef4444', fontSize: '32px' }}>warning</span>
               <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>Unsaved Changes</h3>
@@ -638,24 +683,24 @@ export default function Home() {
             <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.5', marginBottom: '24px' }}>
               You have unsaved changes. Would you like to save this paper to your library before starting a new one?
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '12px', justifyContent: 'flex-end' }} className="flex-col md:flex-row">
               <button 
                 onClick={() => setShowUnsavedWarningModal(false)}
-                className="pc-print-btn"
+                className="pc-print-btn w-full md:w-auto"
                 style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: '#94a3b8' }}
               >
                 Cancel
               </button>
               <button 
                 onClick={handleDiscardAndNew}
-                className="pc-print-btn"
+                className="pc-print-btn w-full md:w-auto"
                 style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}
               >
                 Discard &amp; New
               </button>
               <button 
                 onClick={handleSaveAndNew}
-                className="pc-print-btn"
+                className="pc-print-btn w-full md:w-auto"
                 style={{ background: 'linear-gradient(135deg, #0ea5e9, #8b5cf6)', color: '#fff', border: 'none' }}
               >
                 Save &amp; New
@@ -667,8 +712,8 @@ export default function Home() {
 
       {/* ── Name Your Paper Modal ────────────────────────────── */}
       {showNewPaperModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
-          <div className="pc-cyber-card animate-fadeup" style={{ width: '450px', padding: '24px', background: '#0b111e', border: '1px solid rgba(6, 182, 212, 0.4)', boxShadow: '0 0 30px rgba(6, 182, 212, 0.15)' }}>
+        <div className="pc-modal-backdrop" onClick={() => setShowNewPaperModal(false)}>
+          <div className="pc-modal-card animate-fadeup" style={{ border: '1px solid rgba(6, 182, 212, 0.4)', boxShadow: '0 0 30px rgba(6, 182, 212, 0.15)' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <span className="material-symbols-outlined" style={{ color: '#00f2fe', fontSize: '32px' }}>add_circle</span>
               <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>Name Your Paper</h3>
@@ -695,17 +740,17 @@ export default function Home() {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '12px', justifyContent: 'flex-end' }} className="flex-col md:flex-row">
               <button 
                 onClick={() => setShowNewPaperModal(false)}
-                className="pc-print-btn"
+                className="pc-print-btn w-full md:w-auto"
                 style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: '#94a3b8' }}
               >
                 Cancel
               </button>
               <button 
                 onClick={handleConfirmNewPaper}
-                className="pc-print-btn"
+                className="pc-print-btn w-full md:w-auto"
                 disabled={!!newPaperNameError || !newPaperNameInput.trim()}
                 style={{ 
                   background: (newPaperNameError || !newPaperNameInput.trim()) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #0ea5e9, #8b5cf6)', 
@@ -720,6 +765,72 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Mobile Sticky Bottom Bar (Change 11) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-[#0d1321] border-t border-[rgba(56,189,248,0.15)] flex z-[9999] no-print">
+        <button 
+          onClick={() => setShowMobilePreviewSheet(true)}
+          className="flex-1 flex items-center justify-center gap-2 text-[#00f2fe] font-bold text-sm border-r border-[rgba(56,189,248,0.15)] bg-transparent active:bg-[rgba(0,242,254,0.05)]"
+        >
+          <span className="material-symbols-outlined text-lg">visibility</span>
+          <span>Preview</span>
+        </button>
+        <button 
+          onClick={handlePrint}
+          className="flex-1 flex items-center justify-center gap-2 text-white font-bold text-sm bg-transparent active:bg-[rgba(255,255,255,0.05)]"
+        >
+          <span className="material-symbols-outlined text-lg">print</span>
+          <span>Print / PDF</span>
+        </button>
+      </div>
+
+      {/* Mobile Live Preview Bottom Sheet (Change 3) */}
+      {showMobilePreviewSheet && (
+        <div 
+          className="fixed inset-0 z-[10000] bg-black/80 flex flex-col justify-end no-print"
+          onClick={() => setShowMobilePreviewSheet(false)}
+        >
+          <div 
+            className="bg-[#070c15] w-full h-[85vh] rounded-t-2xl border-t border-[rgba(56,189,248,0.2)] flex flex-col animate-slideup"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[rgba(56,189,248,0.12)]">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#00f2fe]">visibility</span>
+                <span className="font-bold text-white text-base">Paper Preview</span>
+              </div>
+              <button 
+                onClick={() => setShowMobilePreviewSheet(false)}
+                className="text-gray-400 hover:text-white p-1"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            {/* Content */}
+            <div className="flex-1 overflow-auto p-4 bg-[#090d16] flex justify-center items-start">
+              <div 
+                style={{ 
+                  zoom: 0.45, 
+                  width: '210mm', 
+                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.4)',
+                  transformOrigin: 'top center'
+                }}
+              >
+                <PaperPreview 
+                  meta={meta} 
+                  layout={layout} 
+                  questions={questions} 
+                  hideControls={true} 
+                  isEmbedded={true} 
+                  appMode={appMode} 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* ── Footer ─────────────────────────────────────────────── */}
       <footer className="pc-footer no-print" style={{ background: '#0b111e', borderTop: '1px solid rgba(56, 189, 248, 0.12)', padding: '24px' }}>

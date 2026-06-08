@@ -303,7 +303,7 @@ export default function LibraryPage() {
         </header>
 
         {/* ── Main Library Content ──────────────────────────────── */}
-        <main style={{ padding: '48px 24px', maxWidth: '1200px', margin: '0 auto' }}>
+        <main style={{ padding: '48px 24px', maxWidth: '1200px', margin: '0 auto' }} className="pb-24 md:pb-12">
           
           {/* Header row */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '36px' }}>
@@ -318,7 +318,7 @@ export default function LibraryPage() {
             </div>
             
             {/* Import Button */}
-            <div>
+            <div className="hidden md:block">
               <button 
                 onClick={handleImportClick} 
                 className="pc-print-btn"
@@ -347,7 +347,7 @@ export default function LibraryPage() {
           </div>
 
           {/* Search, Filter and Sorting toolbar */}
-          <div className="pc-cyber-card" style={{ padding: '16px 20px', marginBottom: '32px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', background: 'rgba(9, 13, 22, 0.6)' }}>
+          <div className="pc-cyber-card flex flex-col md:flex-row gap-4 md:gap-5 items-stretch md:items-center" style={{ padding: '16px 20px', marginBottom: '32px', background: 'rgba(9, 13, 22, 0.6)' }}>
             
             {/* Search Input */}
             <div className="pc-cyber-field" style={{ flex: 1, minWidth: '280px', margin: 0 }}>
@@ -363,7 +363,7 @@ export default function LibraryPage() {
             </div>
 
             {/* Mode Filters */}
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none py-1 w-full md:w-auto">
               <button 
                 onClick={() => setModeFilter('all')} 
                 style={{
@@ -403,7 +403,7 @@ export default function LibraryPage() {
             </div>
 
             {/* Sort Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="w-full md:w-auto justify-between">
               <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Sort by:</span>
               <select
                 value={sortBy}
@@ -423,7 +423,7 @@ export default function LibraryPage() {
 
           {/* Cards Grid */}
           {filteredPapers.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '24px' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ display: 'grid', gap: '24px' }}>
               {filteredPapers.map(paper => {
                 const totalQ = Object.values(paper.questions || {}).flat().length
                 const updatedAtDate = new Date(paper.updatedAt || paper.createdAt)
@@ -514,17 +514,17 @@ export default function LibraryPage() {
                     </div>
 
                     {/* Footer Row: Date and Buttons */}
-                    <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3.5" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '14px', display: 'flex' }}>
                       <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
                         Edited {formattedDate}
                       </span>
                       
-                      <div style={{ display: 'flex', gap: '6px' }}>
+                      <div className="flex items-center gap-1.5 w-full sm:w-auto sm:justify-end" style={{ display: 'flex', gap: '6px' }}>
                         {/* Open & Edit */}
                         <Link 
                           href="/" 
                           onClick={() => handleOpenEdit(paper)}
-                          className="pc-print-btn"
+                          className="pc-print-btn flex-1 sm:flex-initial h-11 sm:h-auto flex items-center justify-center"
                           style={{
                             padding: '6px 12px',
                             fontSize: '12px',
@@ -543,7 +543,7 @@ export default function LibraryPage() {
                             setPaperToDuplicate(paper)
                             setDuplicateNameInput(paper.name + " (Copy)")
                           }}
-                          className="pc-print-btn"
+                          className="pc-print-btn flex-1 sm:flex-initial h-11 sm:h-auto flex items-center justify-center"
                           style={{ padding: '6px 10px', fontSize: '12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)' }}
                           title="Duplicate Paper"
                         >
@@ -553,7 +553,7 @@ export default function LibraryPage() {
                         {/* Export */}
                         <button 
                           onClick={() => handleExport(paper)}
-                          className="pc-print-btn"
+                          className="pc-print-btn flex-1 sm:flex-initial h-11 sm:h-auto flex items-center justify-center"
                           style={{ padding: '6px 10px', fontSize: '12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.1)' }}
                           title="Export JSON"
                         >
@@ -563,7 +563,7 @@ export default function LibraryPage() {
                         {/* Delete */}
                         <button 
                           onClick={() => setPaperToDelete(paper)}
-                          className="pc-print-btn"
+                          className="pc-print-btn flex-1 sm:flex-initial h-11 sm:h-auto flex items-center justify-center"
                           style={{ padding: '6px 10px', fontSize: '12px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444' }}
                           title="Delete Paper"
                         >
@@ -616,6 +616,17 @@ export default function LibraryPage() {
             </div>
           )}
         </main>
+
+        {/* Mobile Sticky Import Footer */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#070c15] border-t border-slate-800 p-4 z-40">
+          <button
+            onClick={handleImportClick}
+            className="w-full h-12 rounded-xl bg-purple-900/30 border border-purple-500/30 text-purple-400 font-bold flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined">upload_file</span>
+            <span>Import Paper (.json)</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Library Modals ────────────────────────────────────── */}
