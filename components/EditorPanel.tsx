@@ -4,6 +4,69 @@ import { useState, useEffect, useRef } from 'react'
 import { PaperMeta, QuestionsMap, Question } from '@/lib/types'
 import { getOrderedKeys } from './PaperPreview'
 
+// ── Subject-specific AI system prompts ─────────────────────────────────
+const MATH_PROMPT = `You are a math question parser for Indian exam papers.
+Parse the pasted questions and return ONLY a valid JSON array.
+Rules:
+- Preserve all math symbols as unicode exactly:
+  ∈ ∉ ⊂ ⊃ ∪ ∩ ∅ φ ℕ ℤ ℝ ² ³ √ π ∞ ≤ ≥ ≠
+  Σ ∫ ∂ Δ α β γ θ sin cos tan log ln f(x) P(A)
+- Never write x2 instead of x², H2 instead of H²
+- Detect MCQ options (a)(b)(c)(d) on same line OR separate lines
+- Never confuse { } brackets inside options as new option markers
+- Split questions by their number (1. or 1 or 1))
+- Detect OR alternative questions
+Return this exact JSON format, nothing else:
+[{"questionNumber":1,"type":"mcq","questionText":"question here",
+"hasOR":false,"orQuestionText":"","options":{"a":"","b":"","c":"","d":""},"marks":1}]
+For non-MCQ remove options field.
+For match column add columnA[] and columnB[] arrays.
+For fill blanks use "______" for blanks.
+Return ONLY raw JSON. No explanation. No backticks.`
+
+const CHEMISTRY_PROMPT = `You are a chemistry question parser for Indian exam papers.
+Parse the pasted questions and return ONLY a valid JSON array.
+Rules:
+- Preserve all chemical formulas using subscripts exactly:
+  H₂O H₂SO₄ CO₂ NaCl CaCO₃ NH₃ HCl NaOH
+  CH₄ C₆H₁₂O₆ Fe₂O₃ Na₂CO₃ KMnO₄
+- Never write H2O instead of H₂O or CO2 instead of CO₂
+- Preserve reaction symbols exactly:
+  → (reaction) ⇌ (equilibrium) ↑ (gas) ↓ (precipitate) Δ (heat)
+- Preserve ionic charges exactly: Fe²⁺ Fe³⁺ Cu²⁺ SO₄²⁻ OH⁻
+- Detect MCQ options (a)(b)(c)(d) on same line OR separate lines
+- Split questions by their number (1. or 1 or 1))
+- Detect OR alternative questions
+Return this exact JSON format, nothing else:
+[{"questionNumber":1,"type":"mcq","questionText":"question here",
+"hasOR":false,"orQuestionText":"","options":{"a":"","b":"","c":"","d":""},"marks":1}]
+For non-MCQ remove options field.
+For match column add columnA[] and columnB[] arrays.
+For fill blanks use "______" for blanks.
+Return ONLY raw JSON. No explanation. No backticks.`
+
+const PHYSICS_PROMPT = `You are a physics question parser for Indian exam papers.
+Parse the pasted questions and return ONLY a valid JSON array.
+Rules:
+- Preserve all physics symbols as unicode exactly:
+  → (vector) ω α ε μ λ ρ η Ω ° θ φ
+- Preserve units exactly:
+  m/s m/s² N/m J W kWh μC μF kΩ °C K
+- Preserve formulas exactly:
+  E=mc² F=ma v²=u²+2as P=mv F=qvB
+- Preserve subscripts and superscripts:
+  v₀ v₁ aₓ Fₙ m² m³ s²
+- Detect MCQ options (a)(b)(c)(d) on same line OR separate lines
+- Split questions by their number (1. or 1 or 1))
+- Detect OR alternative questions
+Return this exact JSON format, nothing else:
+[{"questionNumber":1,"type":"mcq","questionText":"question here",
+"hasOR":false,"orQuestionText":"","options":{"a":"","b":"","c":"","d":""},"marks":1}]
+For non-MCQ remove options field.
+For match column add columnA[] and columnB[] arrays.
+For fill blanks use "______" for blanks.
+Return ONLY raw JSON. No explanation. No backticks.`
+
 // Robust local parser for multiple MCQ formatting combinations (A, B, C, D marked)
 function parseLocalQuestionAndOptions(text: string) {
   const trimmed = text.trim()
@@ -88,6 +151,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
   const [aiProvider, setAiProvider] = useState<'gemini' | 'groq'>('gemini')
   const [isGenerating, setIsGenerating] = useState(false)
   const [aiQuestionType, setAiQuestionType] = useState<string>('MCQ')
+  const [aiSubject, setAiSubject] = useState<'math' | 'chemistry' | 'physics'>('math')
 
   // Preview modal state
   const [previewQuestions, setPreviewQuestions] = useState<Array<{
@@ -168,6 +232,10 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
           defaultType: aiQuestionType,
           provider: aiProvider,
           appMode: appMode,
+          subjectPrompt:
+            aiSubject === 'math' ? MATH_PROMPT :
+            aiSubject === 'chemistry' ? CHEMISTRY_PROMPT :
+            PHYSICS_PROMPT,
         }),
       })
 
@@ -653,6 +721,50 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="material-symbols-outlined">auto_awesome</span>
               <span>AI Question Generator</span>
+            </div>
+          </div>
+
+          {/* Subject Toggle Buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+            <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {([
+                { key: 'math',      label: 'Mathematics', icon: 'calculate' },
+                { key: 'chemistry', label: 'Chemistry',   icon: 'science' },
+                { key: 'physics',   label: 'Physics',     icon: 'bolt' },
+              ] as const).map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={() => setAiSubject(key)}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    border: aiSubject === key
+                      ? '1px solid #00f2fe'
+                      : '1px solid rgba(56, 189, 248, 0.12)',
+                    background: aiSubject === key
+                      ? 'rgba(0, 242, 254, 0.1)'
+                      : '#0d121f',
+                    color: aiSubject === key ? '#00f2fe' : '#64748b',
+                    fontSize: '13px',
+                    fontWeight: aiSubject === key ? 700 : 500,
+                    cursor: isGenerating ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease',
+                    fontFamily: 'inherit',
+                    boxShadow: aiSubject === key ? '0 0 10px rgba(0, 242, 254, 0.12)' : 'none',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{icon}</span>
+                  <span>{label}</span>
+                </button>
+              ))}
             </div>
           </div>
 

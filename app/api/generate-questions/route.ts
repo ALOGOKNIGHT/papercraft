@@ -350,6 +350,70 @@ function fallbackFromPlaintext(rawText: string, defaultMarks: number, defaultTyp
 
 const GROQ_JSON_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'llama-3.1-8b-instant'];
 
+// ── Subject-specific system prompts ─────────────────────────────────────────
+
+const MATH_PROMPT = `You are a math question parser for Indian exam papers.
+Parse the pasted questions and return ONLY a valid JSON array.
+Rules:
+- Preserve all math symbols as unicode exactly:
+  ∈ ∉ ⊂ ⊃ ∪ ∩ ∅ φ ℕ ℤ ℝ ² ³ √ π ∞ ≤ ≥ ≠
+  Σ ∫ ∂ Δ α β γ θ sin cos tan log ln f(x) P(A)
+- Never write x2 instead of x², H2 instead of H²
+- Detect MCQ options (a)(b)(c)(d) on same line OR separate lines
+- Never confuse { } brackets inside options as new option markers
+- Split questions by their number (1. or 1 or 1))
+- Detect OR alternative questions
+Return this exact JSON format, nothing else:
+[{"questionNumber":1,"type":"mcq","questionText":"question here",
+"hasOR":false,"orQuestionText":"","options":{"a":"","b":"","c":"","d":""},"marks":1}]
+For non-MCQ remove options field.
+For match column add columnA[] and columnB[] arrays.
+For fill blanks use "______" for blanks.
+Return ONLY raw JSON. No explanation. No backticks.`;
+
+const CHEMISTRY_PROMPT = `You are a chemistry question parser for Indian exam papers.
+Parse the pasted questions and return ONLY a valid JSON array.
+Rules:
+- Preserve all chemical formulas using subscripts exactly:
+  H₂O H₂SO₄ CO₂ NaCl CaCO₃ NH₃ HCl NaOH
+  CH₄ C₆H₁₂O₆ Fe₂O₃ Na₂CO₃ KMnO₄
+- Never write H2O instead of H₂O or CO2 instead of CO₂
+- Preserve reaction symbols exactly:
+  → (reaction) ⇌ (equilibrium) ↑ (gas) ↓ (precipitate) Δ (heat)
+- Preserve ionic charges exactly: Fe²⁺ Fe³⁺ Cu²⁺ SO₄²⁻ OH⁻
+- Detect MCQ options (a)(b)(c)(d) on same line OR separate lines
+- Split questions by their number (1. or 1 or 1))
+- Detect OR alternative questions
+Return this exact JSON format, nothing else:
+[{"questionNumber":1,"type":"mcq","questionText":"question here",
+"hasOR":false,"orQuestionText":"","options":{"a":"","b":"","c":"","d":""},"marks":1}]
+For non-MCQ remove options field.
+For match column add columnA[] and columnB[] arrays.
+For fill blanks use "______" for blanks.
+Return ONLY raw JSON. No explanation. No backticks.`;
+
+const PHYSICS_PROMPT = `You are a physics question parser for Indian exam papers.
+Parse the pasted questions and return ONLY a valid JSON array.
+Rules:
+- Preserve all physics symbols as unicode exactly:
+  → (vector) ω α ε μ λ ρ η Ω ° θ φ
+- Preserve units exactly:
+  m/s m/s² N/m J W kWh μC μF kΩ °C K
+- Preserve formulas exactly:
+  E=mc² F=ma v²=u²+2as P=mv F=qvB
+- Preserve subscripts and superscripts:
+  v₀ v₁ aₓ Fₙ m² m³ s²
+- Detect MCQ options (a)(b)(c)(d) on same line OR separate lines
+- Split questions by their number (1. or 1 or 1))
+- Detect OR alternative questions
+Return this exact JSON format, nothing else:
+[{"questionNumber":1,"type":"mcq","questionText":"question here",
+"hasOR":false,"orQuestionText":"","options":{"a":"","b":"","c":"","d":""},"marks":1}]
+For non-MCQ remove options field.
+For match column add columnA[] and columnB[] arrays.
+For fill blanks use "______" for blanks.
+Return ONLY raw JSON. No explanation. No backticks.`;
+
 export async function POST(req: NextRequest) {
   try {
     const {
@@ -361,6 +425,7 @@ export async function POST(req: NextRequest) {
       defaultType = 'Short Answer',
       provider = 'gemini',
       appMode = 'coaching',
+      subjectPrompt,           // NEW: pre-built subject-specific prompt from client
     } = await req.json();
 
     if (!rawText?.trim()) {
@@ -380,8 +445,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Build the AI prompt — improved version that handles unicode math, all MCQ formats, numbered splits
-    const objectPrompt = `You are a question paper parser for an Indian school/coaching exam paper generator.
+    // Use subject-specific prompt when provided, otherwise fall back to the generic prompt
+    const objectPrompt = subjectPrompt
+      ? `${subjectPrompt}\n\nInput Text:\n${rawText}`
+      : `You are a question paper parser for an Indian school/coaching exam paper generator.
 ${appMode === 'school' ? 'This paper is for a standard School Exam (CBSE/State Board style).' : 'This paper is for a competitive Coaching Institute Exam (JEE/NEET style).'}
 Subject: ${subject}. Section: ${sectionLabel} (${sectionDescription}).
 
