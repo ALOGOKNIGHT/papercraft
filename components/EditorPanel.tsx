@@ -246,8 +246,8 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
 
       const data = await res.json()
       if (data.questions && data.questions.length > 0) {
-        // Normalize options to always be a 4-element array
-        const previews = data.questions.map((q: any) => {
+        // Normalize each question's options to a clean 4-element array
+        const parsed = data.questions.map((q: any) => {
           let opts: string[] = []
           if (Array.isArray(q.options)) {
             opts = q.options.map(String)
@@ -263,9 +263,33 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
             orText: q.orText || '',
           }
         })
-        setPreviewTargetSection(activeSectionId)
-        setPreviewQuestions(previews)
-        triggerToast(`✓ AI parsed ${previews.length} question${previews.length > 1 ? 's' : ''}! Review before adding.`)
+
+        if (parsed.length === 1) {
+          // Single question — fill the form fields directly, no confirmation needed
+          setStatement(parsed[0].text)
+          setOptions(parsed[0].options)
+          setCorrectIndex(0)
+          setAiTopic('')
+          triggerToast('✓ Question loaded into the editor! Review and click "Add to Paper".')
+        } else {
+          // Multiple questions — add all directly to the paper, no confirmation needed
+          const newQs: Question[] = parsed.map((pq: any) => ({
+            id: pq.id,
+            text: pq.text,
+            type: pq.type as Question['type'],
+            options: pq.options,
+            correctIndex: 0,
+            marks: pq.marks,
+            hasOr: pq.hasOr,
+            orText: pq.orText,
+          }))
+          setQuestions(prev => ({
+            ...prev,
+            [activeSectionId]: [...(prev[activeSectionId] || []), ...newQs]
+          }))
+          setAiTopic('')
+          triggerToast(`✓ Added ${newQs.length} questions to Section ${activeSectionId}!`)
+        }
       } else {
         triggerToast('✕ AI could not extract any structured questions. Try rephrasing or switching provider.')
       }
