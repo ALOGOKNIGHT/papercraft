@@ -519,6 +519,31 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
     triggerToast(`✓ Renamed Section ${id} successfully!`)
   }
 
+  const handleDeleteSection = (id: string) => {
+    // Don't allow deleting the last section
+    if (sectionsList.length <= 1) {
+      triggerToast('✕ Cannot delete the only section!')
+      return
+    }
+    // Remove section from questions map
+    setQuestions(prev => {
+      const updated = { ...prev }
+      delete updated[id]
+      return updated
+    })
+    // Remove from customSectionNames and sectionOrder
+    setMeta(prev => {
+      const updatedNames = { ...(prev.customSectionNames || {}) }
+      delete updatedNames[id]
+      const updatedOrder = (prev.sectionOrder || []).filter((s: string) => s !== id)
+      return { ...prev, customSectionNames: updatedNames, sectionOrder: updatedOrder }
+    })
+    // Switch active section to first remaining
+    const remaining = sectionsList.filter(s => s.id !== id)
+    setActiveSectionId(remaining[0]?.id || 'A')
+    triggerToast(`✕ Section ${id} and its questions deleted.`)
+  }
+
   return (
     <div className="pc-editor-container animate-fadeup delay-1">
       {/* ── Left Sidebar ────────────────────────────────────────── */}
@@ -636,7 +661,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                     <button
                       type="button"
                       onClick={(e) => {
-                        e.stopPropagation(); // Stop sidebar click activation
+                        e.stopPropagation();
                         startRenaming(sec.id, sec.title);
                       }}
                       style={{
@@ -652,6 +677,29 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
                     </button>
+                    {/* Delete — hidden when only 1 section */}
+                    {sectionsList.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSection(sec.id);
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '2px',
+                          opacity: 0.7,
+                        }}
+                        title="Delete section and its questions"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1057,90 +1105,61 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
           </button>
         </div>
 
-        {/* ── Added Questions List (All Sections) ───────────────── */}
+        {/* ── Questions in Active Section ───────────────────────── */}
         <div style={{ marginTop: '48px', borderTop: '2px dashed rgba(56, 189, 248, 0.15)', paddingTop: '32px' }}>
-          <h3 style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: '18px', color: '#fff', marginBottom: '20px' }}>
-            Questions in Exam Paper ({totalAddedQuestionsCount})
+          <h3 style={{ fontFamily: 'Plus Jakarta Sans', fontWeight: 700, fontSize: '18px', color: '#fff', marginBottom: '4px' }}>
+            Questions in Section {activeSection.id}: {activeSection.title}
           </h3>
-          
-          {totalAddedQuestionsCount === 0 ? (
+          <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '20px' }}>
+            {(questions[activeSectionId] || []).length} question{(questions[activeSectionId] || []).length !== 1 ? 's' : ''} in this section
+          </p>
+
+          {(questions[activeSectionId] || []).length === 0 ? (
             <p style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic' }}>
-              No questions added yet. Use the editor above to draft and add questions to sections.
+              No questions in this section yet. Use the editor above to add questions.
             </p>
           ) : (
-            <div className="space-y-6">
-              {sectionsList.map(sec => {
-                const secQuestions = questions[sec.id] || []
-                if (secQuestions.length === 0) return null
-                
-                return (
-                  <div key={sec.id} style={{ background: '#0f1422', border: '1px solid rgba(56, 189, 248, 0.08)', borderRadius: '12px', padding: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(56, 189, 248, 0.08)', paddingBottom: '10px', marginBottom: '14px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#00f2fe' }}>
-                        Section {sec.id}: {sec.title}
-                      </span>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {secQuestions.length} Q
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {secQuestions.map((q, idx) => (
-                        <div key={q.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', paddingBottom: idx !== secQuestions.length - 1 ? '16px' : '0', borderBottom: idx !== secQuestions.length - 1 ? '1px dashed rgba(255,255,255,0.04)' : 'none' }}>
-                          <span style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#00f2fe', fontSize: '11px', fontWeight: 700, borderRadius: '4px', padding: '2px 6px', marginTop: '2px' }}>
-                            Q{idx + 1}
-                          </span>
-                          
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <div>
-                              <p style={{ fontSize: '13px', color: '#f8fafc', fontWeight: 500, marginBottom: '8px', lineHeight: 1.5 }}>
-                                {q.text}
-                              </p>
-                              
-                              {/* Display uploaded thumbnail in grouping list */}
-                              {q.image && (
-                                <div style={{ 
-                                  background: 'rgba(255, 255, 255, 0.02)', 
-                                  border: '1px solid rgba(56, 189, 248, 0.15)', 
-                                  borderRadius: '6px', 
-                                  padding: '6px', 
-                                  width: 'fit-content',
-                                  marginBottom: '8px'
-                                }}>
-                                  <img 
-                                    src={q.image} 
-                                    alt="question thumbnail" 
-                                    style={{ maxHeight: '80px', maxWidth: '160px', objectFit: 'contain', borderRadius: '2px' }} 
-                                  />
-                                </div>
-                              )}
- 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {q.options.map((opt, oIdx) => (
-                                  <div key={oIdx} style={{ fontSize: '12px', color: q.correctIndex === oIdx ? '#10b981' : '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ fontWeight: 700 }}>{String.fromCharCode(65 + oIdx)}.</span>
-                                    <span>{opt || '(empty option)'}</span>
-                                    {q.correctIndex === oIdx && <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAddedQuestion(sec.id, q.id)}
-                            style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
-                            title="Delete question"
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                          </button>
+            <div className="space-y-4">
+              {(questions[activeSectionId] || []).map((q, idx) => (
+                <div key={q.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', paddingBottom: idx !== (questions[activeSectionId] || []).length - 1 ? '16px' : '0', borderBottom: idx !== (questions[activeSectionId] || []).length - 1 ? '1px dashed rgba(255,255,255,0.04)' : 'none' }}>
+                  <span style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#00f2fe', fontSize: '11px', fontWeight: 700, borderRadius: '4px', padding: '2px 6px', marginTop: '2px' }}>
+                    Q{idx + 1}
+                  </span>
+
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div>
+                      <p style={{ fontSize: '13px', color: '#f8fafc', fontWeight: 500, marginBottom: '8px', lineHeight: 1.5 }}>
+                        {q.text}
+                      </p>
+
+                      {q.image && (
+                        <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(56, 189, 248, 0.15)', borderRadius: '6px', padding: '6px', width: 'fit-content', marginBottom: '8px' }}>
+                          <img src={q.image} alt="question thumbnail" style={{ maxHeight: '80px', maxWidth: '160px', objectFit: 'contain', borderRadius: '2px' }} />
                         </div>
-                      ))}
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {q.options.map((opt, oIdx) => (
+                          <div key={oIdx} style={{ fontSize: '12px', color: q.correctIndex === oIdx ? '#10b981' : '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontWeight: 700 }}>{String.fromCharCode(65 + oIdx)}.</span>
+                            <span>{opt || '(empty option)'}</span>
+                            {q.correctIndex === oIdx && <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                )
-              })}
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAddedQuestion(activeSectionId, q.id)}
+                    style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
+                    title="Delete question"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
