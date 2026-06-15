@@ -72,15 +72,16 @@ function parseLocalQuestionAndOptions(text: string) {
   const trimmed = text.trim()
   if (!trimmed) return null
 
-  // 1. Check for Inline Single-Line Options
-  // A) / B) / C) / D) or a) / b) / c) / d) or (a) / (b) / (c) / (d) or A. / B. / C. / D.
+  // 1. Check for Inline Single-Line/Multi-Line Patterns
   const inlinePatterns = [
-    /(.*?)\s+(?:A|a)\)\s+(.+?)\s+(?:B|b)\)\s+(.+?)\s+(?:C|c)\)\s+(.+?)\s+(?:D|d)\)\s+(.+)$/s,
-    /(.*?)\s+\((?:A|a)\)\s+(.+?)\s+\((?:B|b)\)\s+(.+?)\s+\((?:C|c)\)\s+(.+?)\s+\((?:D|d)\)\s+(.+)$/s,
-    /(.*?)\s+(?:A|a)\.\s+(.+?)\s+(?:B|b)\.\s+(.+?)\s+(?:C|c)\.\s+(.+?)\s+(?:D|d)\.\s+(.+)$/s,
-    /(.*?)\s+1\)\s+(.+?)\s+2\)\s+(.+?)\s+3\)\s+(.+?)\s+4\)\s+(.+)$/s,
-    /(.*?)\s+\(1\)\s+(.+?)\s+\(2\)\s+(.+?)\s+\(3\)\s+(.+?)\s+\(4\)\s+(.+)$/s,
-    /(.*?)\s+1\.\s+(.+?)\s+2\.\s+(.+?)\s+3\.\s+(.+?)\s+4\.\s+(.+)$/s,
+    /^(.+?)\s+(?:A|a)\)\s+(.+?)\s+(?:B|b)\)\s+(.+?)\s+(?:C|c)\)\s+(.+?)\s+(?:D|d)\)\s+(.+)$/s,
+    /^(.+?)\s+\((?:A|a)\)\s+(.+?)\s+\((?:B|b)\)\s+(.+?)\s+\((?:C|c)\)\s+(.+?)\s+\((?:D|d)\)\s+(.+)$/s,
+    /^(.+?)\s+(?:A|a)\.\s+(.+?)\s+(?:B|b)\.\s+(.+?)\s+(?:C|c)\.\s+(.+?)\s+(?:D|d)\.\s+(.+)$/s,
+    /^(.+?)\s+\[(?:A|a)\]\s+(.+?)\s+\[(?:B|b)\]\s+(.+?)\s+\[(?:C|c)\]\s+(.+?)\s+\[(?:D|d)\]\s+(.+)$/s,
+    /^(.+?)\s+1\)\s+(.+?)\s+2\)\s+(.+?)\s+3\)\s+(.+?)\s+4\)\s+(.+)$/s,
+    /^(.+?)\s+\(1\)\s+(.+?)\s+\(2\)\s+(.+?)\s+\(3\)\s+(.+?)\s+\(4\)\s+(.+)$/s,
+    /^(.+?)\s+1\.\s+(.+?)\s+2\.\s+(.+?)\s+3\.\s+(.+?)\s+4\.\s+(.+)$/s,
+    /^(.+?)\s+\[1\]\s+(.+?)\s+\[2\]\s+(.+?)\s+\[3\]\s+(.+?)\s+\[4\]\s+(.+)$/s,
   ]
 
   for (const pattern of inlinePatterns) {
@@ -95,30 +96,81 @@ function parseLocalQuestionAndOptions(text: string) {
 
   // 2. Check for Line-by-Line Options
   const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean)
-  if (lines.length >= 3) {
-    const extractedOptions: string[] = []
-    const statementLines: string[] = []
-    
-    // Matches lines starting with A) or a) or (A) or (a) or A. or a. or 1) or (1) or 1.
-    const optionRegex = /^\s*(?:\(?([A-Da-d1-4])\)?[\.\)]|-)\s*(.+)$/
+  if (lines.length >= 2) {
+    const optionRegex = /^\s*(?:\(?([A-Ea-e1-5])\)?[\.\)-]|\[([A-Ea-e1-5])\])\s*(.+)$/
+    const extracted: { index: number; label: string; text: string }[] = []
 
-    lines.forEach(line => {
+    lines.forEach((line, i) => {
       const match = line.match(optionRegex)
       if (match) {
-        extractedOptions.push(match[2].trim())
-      } else {
-        statementLines.push(line)
+        const label = (match[1] || match[2]).toUpperCase()
+        const textVal = match[3].trim()
+        extracted.push({ index: i, label, text: textVal })
       }
     })
 
-    if (extractedOptions.length >= 2) {
-      const finalOpts = [...extractedOptions]
+    let optionStartIndex = -1
+    let finalOptions: string[] = []
+
+    // Search for a valid option sequence near the end of lines
+    for (let startIdx = extracted.length - 1; startIdx >= Math.max(0, extracted.length - 3); startIdx--) {
+      const lastItem = extracted[startIdx]
+      const lastLabel = lastItem.label
+      let expectedSequence: string[] = []
+      if (lastLabel === 'D') expectedSequence = ['A', 'B', 'C', 'D']
+      else if (lastLabel === 'E') expectedSequence = ['A', 'B', 'C', 'D', 'E']
+      else if (lastLabel === '4') expectedSequence = ['1', '2', '3', '4']
+      else if (lastLabel === '5') expectedSequence = ['1', '2', '3', '4', '5']
+      else if (lastLabel === 'C') expectedSequence = ['A', 'B', 'C']
+      else if (lastLabel === '3') expectedSequence = ['1', '2', '3']
+
+      if (expectedSequence.length > 0) {
+        let seqIdx = expectedSequence.length - 1
+        const tempOpts: number[] = new Array(expectedSequence.length)
+        let matchCount = 0
+        let lastFoundLineIdx = lines.length
+
+        for (let i = startIdx; i >= 0; i--) {
+          const item = extracted[i]
+          if (item.label === expectedSequence[seqIdx] && item.index < lastFoundLineIdx) {
+            tempOpts[seqIdx] = item.index
+            lastFoundLineIdx = item.index
+            seqIdx--
+            matchCount++
+            if (seqIdx < 0) break
+          }
+        }
+
+        if (matchCount === expectedSequence.length) {
+          optionStartIndex = tempOpts[0]
+          
+          finalOptions = []
+          for (let k = 0; k < tempOpts.length; k++) {
+            const currentLineIdx = tempOpts[k]
+            const nextLineIdx = (k < tempOpts.length - 1) ? tempOpts[k + 1] : lines.length
+            
+            const firstLineOfOption = lines[currentLineIdx]
+            const matchFirst = firstLineOfOption.match(optionRegex)
+            const firstLineText = matchFirst ? matchFirst[3].trim() : firstLineOfOption
+            
+            const remainingLines = lines.slice(currentLineIdx + 1, nextLineIdx)
+            const optionText = [firstLineText, ...remainingLines].join('\n').trim()
+            finalOptions.push(optionText)
+          }
+          break
+        }
+      }
+    }
+
+    if (optionStartIndex !== -1) {
+      const statement = lines.slice(0, optionStartIndex).join('\n').trim()
+      const finalOpts = [...finalOptions]
       while (finalOpts.length < 4) {
         finalOpts.push(`Option ${String.fromCharCode(65 + finalOpts.length)}`)
       }
       return {
-        statement: statementLines.join('\n').trim(),
-        options: finalOpts.slice(0, 4)
+        statement,
+        options: finalOpts
       }
     }
   }
