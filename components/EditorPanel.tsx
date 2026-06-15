@@ -455,27 +455,32 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
 
     // Helper to split into potential question blocks
     const splitIntoQuestionBlocks = (text: string): string[] => {
-      let blocks = text.split(/\n\n+/).map(b => b.trim()).filter(Boolean);
-      if (blocks.length <= 1) {
-        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-        const numberedPattern = /^\s*(?:Q\.?\s*)?\d+[\.)]/i;
-        const matchingLinesCount = lines.filter(line => numberedPattern.test(line)).length;
-        if (matchingLinesCount >= 2) {
-          const chunks: string[] = [];
-          let currentChunk = "";
-          for (const line of lines) {
-            if (numberedPattern.test(line)) {
-              if (currentChunk.trim()) chunks.push(currentChunk.trim());
-              currentChunk = line;
-            } else {
-              currentChunk += "\n" + line;
-            }
-          }
-          if (currentChunk.trim()) chunks.push(currentChunk.trim());
-          blocks = chunks;
-        }
+      // 1. If it parses as a single question with options, treat it as a single question block!
+      if (parseLocalQuestionAndOptions(text)) {
+        return [text.trim()];
       }
-      return blocks;
+
+      // 2. Otherwise, check for multiple numbered questions
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      const numberedPattern = /^\s*(?:Q\.?\s*)?\d+[\.)]/i;
+      const matchingLinesCount = lines.filter(line => numberedPattern.test(line)).length;
+      if (matchingLinesCount >= 2) {
+        const chunks: string[] = [];
+        let currentChunk = "";
+        for (const line of lines) {
+          if (numberedPattern.test(line)) {
+            if (currentChunk.trim()) chunks.push(currentChunk.trim());
+            currentChunk = line;
+          } else {
+            currentChunk += "\n" + line;
+          }
+        }
+        if (currentChunk.trim()) chunks.push(currentChunk.trim());
+        return chunks;
+      }
+
+      // 3. Fallback: split by double newlines
+      return text.split(/\n\n+/).map(b => b.trim()).filter(Boolean);
     };
 
     const blocks = splitIntoQuestionBlocks(pastedText)
