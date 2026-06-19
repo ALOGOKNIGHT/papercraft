@@ -1144,12 +1144,12 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
             transform: translate(-50%, -50%) !important;
           }
           .unified-columns {
-            column-count: 2 !important;
+            column-count: ${printMode === 'dual' ? 2 : 1} !important;
             column-fill: auto !important;
             -webkit-column-fill: auto !important;
             -moz-column-fill: auto !important;
-            column-gap: 28px !important;
-            column-rule: 1px dashed rgba(0,0,0,0.1) !important;
+            column-gap: ${printMode === 'dual' ? '28px' : 'normal'} !important;
+            column-rule: ${printMode === 'dual' ? '1px dashed rgba(0,0,0,0.1)' : 'none'} !important;
           }
         }
       `,
@@ -1190,9 +1190,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
           margin: '0 auto',
           padding: `${layout.marginTop}mm ${layout.marginRight}mm ${layout.marginBottom}mm ${layout.marginLeft}mm`,
           boxSizing: 'border-box',
-          columnCount: printMode === 'dual' ? 2 : 1,
-          columnGap: printMode === 'dual' ? '25mm' : 'normal',
-          columnRule: printMode === 'dual' ? '1.5px solid #000' : 'none',
+
           fontFamily: layout.fontFamily,
           fontSize: layout.questionFontSize + 'px',
           lineHeight: layout.lineHeight,
@@ -1449,10 +1447,10 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
               <div
                 className="unified-columns"
                 style={{
-                  columnCount: 2,
+                  columnCount: printMode === 'dual' ? 2 : 1,
                   columnFill: 'auto',
-                  columnGap: '28px',
-                  columnRule: '1px dashed rgba(0,0,0,0.1)',
+                  columnGap: printMode === 'dual' ? '28px' : 'normal',
+                  columnRule: printMode === 'dual' ? '1px dashed rgba(0,0,0,0.1)' : 'none',
                   width: '100%',
                   position: 'relative',
                   zIndex: 1,
