@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { PaperMeta, LayoutSettings, QuestionsMap } from '@/lib/types'
 import { SECTIONS } from '@/lib/constants'
 import MathText from './MathText'
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ImageRun, BorderStyle, VerticalAlign } from 'docx'
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ImageRun, BorderStyle, VerticalAlign, PageOrientation } from 'docx'
 import { saveAs } from 'file-saver'
 
 // Helper function to render bold text marked with double asterisks e.g. **text**
@@ -600,11 +600,57 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
       }
     }
 
+    const isDual = printMode === 'dual' || layout.pagesPerSheet === '2'
+
+    const getPageDimensions = () => {
+      const isLandscape = isDual
+      const size = layout.pageSize || 'A4'
+      if (size === 'A3') {
+        return {
+          width: isLandscape ? 23811 : 16838,
+          height: isLandscape ? 16838 : 23811,
+        }
+      } else if (size === 'Letter') {
+        return {
+          width: isLandscape ? 15840 : 12240,
+          height: isLandscape ? 12240 : 15840,
+        }
+      } else {
+        // A4
+        return {
+          width: isLandscape ? 16838 : 11906,
+          height: isLandscape ? 11906 : 16838,
+        }
+      }
+    }
+
+    const { width: pageW, height: pageH } = getPageDimensions()
+
     const doc = new Document({
+      styles: {
+        default: {
+          document: {
+            run: {
+              font: layout.fontFamily || 'Calibri',
+            },
+            paragraph: {
+              spacing: {
+                line: (layout.lineHeight || 1.15) * 240,
+                after: 60,
+              },
+            },
+          },
+        },
+      },
       sections: [
         {
           properties: {
             page: {
+              size: {
+                width: pageW,
+                height: pageH,
+                orientation: isDual ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
+              },
               margin: {
                 top: (layout.marginTop || 20) * 56.7, // twips
                 bottom: (layout.marginBottom || 20) * 56.7,
@@ -612,6 +658,13 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                 right: (layout.marginRight || 20) * 56.7,
               },
             },
+            ...(isDual ? {
+              columns: {
+                count: 2,
+                space: 1417, // 25mm in twips
+                lineBetween: true,
+              },
+            } : {}),
           },
           children: [
             ...headerChildren,
@@ -645,6 +698,12 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                 new Paragraph({ text: '' }),
                 new Table({
                   width: { size: 100, type: WidthType.PERCENTAGE },
+                  margins: {
+                    top: 0,
+                    bottom: (layout.questionSpacing || 12) * 15,
+                    left: 100,
+                    right: 100,
+                  },
                   borders: {
                     top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
                     bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
@@ -687,6 +746,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                         cellParagraphs.push(
                           new Table({
                             width: { size: 100, type: WidthType.PERCENTAGE },
+                            margins: { top: 40, bottom: 40, left: 100, right: 100 },
                             borders: {
                               top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
                               bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
@@ -718,6 +778,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                         cellParagraphs.push(
                           new Table({
                             width: { size: 100, type: WidthType.PERCENTAGE },
+                            margins: { top: 40, bottom: 40, left: 100, right: 100 },
                             borders: {
                               top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
                               bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
@@ -804,6 +865,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                       cellParagraphs.push(
                         new Table({
                           width: { size: 100, type: WidthType.PERCENTAGE },
+                          margins: { top: 60, bottom: 60, left: 100, right: 100 },
                           borders: {
                             top: { style: BorderStyle.SINGLE, size: 8, color: '000000' },
                             bottom: { style: BorderStyle.SINGLE, size: 8, color: '000000' },
@@ -885,6 +947,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                           cellParagraphs.push(
                             new Table({
                               width: { size: 100, type: WidthType.PERCENTAGE },
+                              margins: { top: 40, bottom: 40, left: 100, right: 100 },
                               borders: {
                                 top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
                                 bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
@@ -916,6 +979,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                           cellParagraphs.push(
                             new Table({
                               width: { size: 100, type: WidthType.PERCENTAGE },
+                              margins: { top: 40, bottom: 40, left: 100, right: 100 },
                               borders: {
                                 top: { style: BorderStyle.NONE, size: 0, color: 'auto' },
                                 bottom: { style: BorderStyle.NONE, size: 0, color: 'auto' },
