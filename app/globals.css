@@ -430,7 +430,13 @@ input:focus, textarea:focus, select:focus {
 .no-print { display: block; }
 @media print {
   .no-print { display: none !important; }
-  body { background: #fff !important; }
+  html, body, #__next, main, .dark-workspace, .flex-1, .pc-main, .preview-shell {
+    background: #fff !important;
+    background-color: #fff !important;
+    box-shadow: none !important;
+    border: none !important;
+    outline: none !important;
+  }
 }
 
 /* ── Material Symbols ────────────────────────────────────────── */
