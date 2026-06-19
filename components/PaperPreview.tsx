@@ -23,6 +23,23 @@ function renderFormattedText(text: string) {
   )
 }
 
+function docxRenderFormattedText(text: string, options: any = {}): TextRun[] {
+  if (!text) return []
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part) => {
+    const isBold = part.startsWith('**') && part.endsWith('**')
+    const cleanText = isBold ? part.slice(2, -2) : part
+    return new TextRun({
+      text: cleanText,
+      bold: isBold || options.bold,
+      size: options.size,
+      color: options.color,
+      font: options.font,
+      underline: options.underline,
+    })
+  })
+}
+
 interface Props {
   meta: PaperMeta
   layout: LayoutSettings
@@ -299,9 +316,10 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
             new Paragraph({
               children: [
                 new TextRun({
-                  text: `${i + 1}. ${line}`,
+                  text: `${i + 1}. `,
                   size: (layout.instructionFontSize || 12) * 2,
                 }),
+                ...docxRenderFormattedText(line, { size: (layout.instructionFontSize || 12) * 2 }),
               ],
             })
           )
@@ -443,20 +461,35 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
 
       if (meta.topicsCovered) {
         meta.topicsCovered.split('\n').filter(Boolean).forEach((line) => {
-          const parts = line.split(':')
-          if (parts.length > 1) {
+          let inBold = false;
+          let splitIndex = -1;
+          for (let idx = 0; idx < line.length; idx++) {
+            if (line[idx] === '*' && line[idx + 1] === '*') {
+              inBold = !inBold;
+              idx++;
+            } else if (line[idx] === ':' && !inBold) {
+              splitIndex = idx;
+              break;
+            }
+          }
+
+          const fontSize = (layout.topicsCoveredFontSize || 12) * 2;
+          if (splitIndex !== -1) {
+            const left = line.substring(0, splitIndex);
+            const right = line.substring(splitIndex + 1);
             topicsParagraphs.push(
               new Paragraph({
                 children: [
-                  new TextRun({ text: parts[0] + ':', bold: true, size: (layout.topicsCoveredFontSize || 12) * 2 }),
-                  new TextRun({ text: parts.slice(1).join(':'), size: (layout.topicsCoveredFontSize || 12) * 2 }),
+                  ...docxRenderFormattedText(left, { bold: true, size: fontSize }),
+                  new TextRun({ text: ':', bold: true, size: fontSize }),
+                  ...docxRenderFormattedText(right, { size: fontSize }),
                 ],
               })
             )
           } else {
             topicsParagraphs.push(
               new Paragraph({
-                children: [new TextRun({ text: line, size: (layout.topicsCoveredFontSize || 12) * 2 })],
+                children: docxRenderFormattedText(line, { size: fontSize }),
               })
             )
           }
@@ -532,7 +565,7 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
         meta.instructions.split('\n').filter(Boolean).forEach((line) => {
           instructionParagraphs.push(
             new Paragraph({
-              children: [new TextRun({ text: line, size: (layout.instructionFontSize || 12) * 2 })],
+              children: docxRenderFormattedText(line, { size: (layout.instructionFontSize || 12) * 2 }),
             })
           )
         })
@@ -1218,15 +1251,28 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                 <div style={{ lineHeight: '1.8', fontSize: `${layout.topicsCoveredFontSize}px` }}>
                   {meta.topicsCovered ? (
                     meta.topicsCovered.split('\n').filter(Boolean).map((line, i) => {
-                      const parts = line.split(':')
-                      if (parts.length > 1) {
+                      let inBold = false;
+                      let splitIndex = -1;
+                      for (let idx = 0; idx < line.length; idx++) {
+                        if (line[idx] === '*' && line[idx + 1] === '*') {
+                          inBold = !inBold;
+                          idx++;
+                        } else if (line[idx] === ':' && !inBold) {
+                          splitIndex = idx;
+                          break;
+                        }
+                      }
+
+                      if (splitIndex !== -1) {
+                        const left = line.substring(0, splitIndex);
+                        const right = line.substring(splitIndex + 1);
                         return (
                           <div key={i}>
-                            <b>{renderFormattedText(parts[0])}:</b> {renderFormattedText(parts.slice(1).join(':'))}
+                            <b>{renderFormattedText(left)}:</b> {renderFormattedText(right)}
                           </div>
-                        )
+                        );
                       }
-                      return <div key={i}>{renderFormattedText(line)}</div>
+                      return <div key={i}>{renderFormattedText(line)}</div>;
                     })
                   ) : (
                     <>
