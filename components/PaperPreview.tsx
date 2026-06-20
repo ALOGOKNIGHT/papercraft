@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PaperMeta, LayoutSettings, QuestionsMap } from '@/lib/types'
 import { SECTIONS } from '@/lib/constants'
 import MathText from './MathText'
@@ -57,7 +57,14 @@ export const getOrderedKeys = (questionsKeys: string[], sectionOrder?: string[])
 }
 
 export default function PaperPreview({ meta, layout, questions, hideControls, isEmbedded, appMode = 'coaching' }: Props) {
-  const [printMode, setPrintMode] = useState<'single' | 'dual'>('single')
+  const [printMode, setPrintMode] = useState<'single' | 'dual'>(
+    layout.pagesPerSheet === '2' ? 'dual' : 'single'
+  )
+
+  useEffect(() => {
+    setPrintMode(layout.pagesPerSheet === '2' ? 'dual' : 'single')
+  }, [layout.pagesPerSheet])
+
   let globalNum = 1
 
   const exportToWord = () => {
@@ -658,13 +665,11 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
                 right: (layout.marginRight || 20) * 56.7,
               },
             },
-            ...(isDual ? {
-              columns: {
-                count: 2,
-                space: 1417, // 25mm in twips
-                lineBetween: true,
-              },
-            } : {}),
+            column: {
+              count: 2,
+              space: 1417, // 25mm in twips
+              separate: true,
+            },
           },
           children: [
             ...headerChildren,
@@ -1144,12 +1149,12 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
             transform: translate(-50%, -50%) !important;
           }
           .unified-columns {
-            column-count: ${printMode === 'dual' ? 2 : 1} !important;
+            column-count: 2 !important;
             column-fill: auto !important;
             -webkit-column-fill: auto !important;
             -moz-column-fill: auto !important;
-            column-gap: ${printMode === 'dual' ? '28px' : 'normal'} !important;
-            column-rule: ${printMode === 'dual' ? '1px dashed rgba(0,0,0,0.1)' : 'none'} !important;
+            column-gap: 28px !important;
+            column-rule: 1px dashed rgba(0,0,0,0.1) !important;
           }
         }
       `,
@@ -1447,10 +1452,10 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
               <div
                 className="unified-columns"
                 style={{
-                  columnCount: printMode === 'dual' ? 2 : 1,
+                  columnCount: 2,
                   columnFill: 'auto',
-                  columnGap: printMode === 'dual' ? '28px' : 'normal',
-                  columnRule: printMode === 'dual' ? '1px dashed rgba(0,0,0,0.1)' : 'none',
+                  columnGap: '28px',
+                  columnRule: '1px dashed rgba(0,0,0,0.1)',
                   width: '100%',
                   position: 'relative',
                   zIndex: 1,
