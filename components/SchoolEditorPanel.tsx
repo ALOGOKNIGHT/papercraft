@@ -538,11 +538,11 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
                 type="button"
                 onClick={() => setCorrect(i)}
                 style={{
-                  width: 22, height: 22, borderRadius: '50%', border: '2px solid',
+                  width: 32, height: 32, minWidth: 44, minHeight: 44, borderRadius: '50%', border: '2px solid',
                   borderColor: correct === i ? '#00f2fe' : 'rgba(56, 189, 248, 0.2)',
                   background: correct === i ? 'rgba(0, 242, 254, 0.15)' : 'transparent',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '10px', color: correct === i ? '#00f2fe' : '#64748b', fontWeight: 700,
+                  fontSize: '11px', color: correct === i ? '#00f2fe' : '#64748b', fontWeight: 700,
                   flexShrink: 0, transition: 'all 0.2s',
                 }}
               >
@@ -557,12 +557,13 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
                   next[i] = e.target.value
                   setOpts(next)
                 }}
-                style={{ flex: 1, fontSize: '12px' }}
+                style={{ flex: 1, fontSize: '12px', minHeight: '44px' }}
               />
               {opts.length > 2 && (
                 <button
                   onClick={() => { const next = opts.filter((_, j) => j !== i); setOpts(next); if (correct >= next.length) setCorrect(0) }}
-                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px', padding: '2px' }}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '18px', padding: '6px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Remove option"
                 >×</button>
               )}
             </div>
@@ -685,14 +686,13 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
                             onClick={e => { e.stopPropagation(); moveSection(sec.id, 'up') }}
                             title="Move Up"
                             style={{
-                              background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
-                              color: isActive ? '#00f2fe' : '#64748b', opacity: isActive ? 0.7 : 0,
-                              transition: 'opacity 0.2s', display: 'flex', alignItems: 'center'
+                              background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                              minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              color: isActive ? '#00f2fe' : '#64748b', opacity: 0.85,
+                              transition: 'opacity 0.2s'
                             }}
-                            onMouseOver={e => (e.currentTarget.style.opacity = '1')}
-                            onMouseOut={e => (e.currentTarget.style.opacity = isActive ? '0.7' : '0')}
                           >
-                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_upward</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_upward</span>
                           </button>
                         )}
                         {/* Move Down */}
@@ -701,14 +701,13 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
                             onClick={e => { e.stopPropagation(); moveSection(sec.id, 'down') }}
                             title="Move Down"
                             style={{
-                              background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
-                              color: isActive ? '#00f2fe' : '#64748b', opacity: isActive ? 0.7 : 0,
-                              transition: 'opacity 0.2s', display: 'flex', alignItems: 'center'
+                              background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                              minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              color: isActive ? '#00f2fe' : '#64748b', opacity: 0.85,
+                              transition: 'opacity 0.2s'
                             }}
-                            onMouseOver={e => (e.currentTarget.style.opacity = '1')}
-                            onMouseOut={e => (e.currentTarget.style.opacity = isActive ? '0.7' : '0')}
                           >
-                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_downward</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_downward</span>
                           </button>
                         )}
                         {/* Rename */}
@@ -716,14 +715,13 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
                           onClick={e => { e.stopPropagation(); startRename(sec.id) }}
                           title="Rename section"
                           style={{
-                            background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
-                            color: isActive ? '#00f2fe' : '#64748b', opacity: isActive ? 0.7 : 0,
-                            transition: 'opacity 0.2s', display: 'flex', alignItems: 'center'
+                            background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                            minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: isActive ? '#00f2fe' : '#64748b', opacity: 0.85,
+                            transition: 'opacity 0.2s'
                           }}
-                          onMouseOver={e => (e.currentTarget.style.opacity = '1')}
-                          onMouseOut={e => (e.currentTarget.style.opacity = isActive ? '0.7' : '0')}
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit</span>
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
                         </button>
                       </div>
                     </div>
@@ -737,10 +735,10 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
                     onClick={e => { e.stopPropagation(); deleteSection(sec.id) }}
                     style={{
                       background: 'none', border: 'none', color: '#64748b', cursor: 'pointer',
-                      fontSize: '14px', opacity: 0.5, transition: 'opacity 0.2s', padding: '2px',
+                      fontSize: '16px', opacity: 0.7, transition: 'opacity 0.2s', padding: '4px',
+                      minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}
-                    onMouseOver={e => (e.currentTarget.style.opacity = '1')}
-                    onMouseOut={e => (e.currentTarget.style.opacity = '0.5')}
+                    title="Delete section"
                   >×</button>
                 )}
               </div>

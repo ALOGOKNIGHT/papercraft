@@ -734,12 +734,15 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          padding: '2px',
-                          opacity: 0.6,
+                          justifyContent: 'center',
+                          minWidth: '44px',
+                          minHeight: '44px',
+                          padding: '4px',
+                          opacity: 0.8,
                         }}
                         title="Move Up"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_upward</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_upward</span>
                       </button>
                     )}
                     {/* Move Down */}
@@ -757,12 +760,15 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          padding: '2px',
-                          opacity: 0.6,
+                          justifyContent: 'center',
+                          minWidth: '44px',
+                          minHeight: '44px',
+                          padding: '4px',
+                          opacity: 0.8,
                         }}
                         title="Move Down"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_downward</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_downward</span>
                       </button>
                     )}
                     {/* Rename */}
@@ -779,11 +785,14 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        padding: '2px',
+                        justifyContent: 'center',
+                        minWidth: '44px',
+                        minHeight: '44px',
+                        padding: '4px',
                       }}
                       title="Rename section"
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
                     </button>
                     {/* Delete — hidden when only 1 section */}
                     {sectionsList.length > 1 && (
@@ -800,12 +809,15 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          padding: '2px',
-                          opacity: 0.7,
+                          justifyContent: 'center',
+                          minWidth: '44px',
+                          minHeight: '44px',
+                          padding: '4px',
+                          opacity: 0.85,
                         }}
                         title="Delete section and its questions"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
                       </button>
                     )}
                   </div>
@@ -902,9 +914,9 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
               {/* Subject Toggle Buttons */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
                 <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</label>
-                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                <div style={{ display: 'flex', gap: '8px', width: '100%', flexWrap: 'wrap' }}>
                   {([
-                    { key: 'math',      label: 'Mathematics', icon: 'calculate' },
+                    { key: 'math',      label: 'Math',        icon: 'calculate' },
                     { key: 'chemistry', label: 'Chemistry',   icon: 'science' },
                     { key: 'physics',   label: 'Physics',     icon: 'bolt' },
                   ] as const).map(({ key, label, icon }) => (
@@ -914,7 +926,9 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                       disabled={isGenerating}
                       onClick={() => setAiSubject(key)}
                       style={{
-                        flex: 1,
+                        flex: '1 1 0',
+                        minWidth: '90px',
+                        minHeight: '44px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1163,15 +1177,18 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                   color: 'white',
                   border: 'none',
                   borderRadius: '50%',
-                  width: 22,
-                  height: 22,
+                  width: 32,
+                  height: 32,
+                  minWidth: 44,
+                  minHeight: 44,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 11,
+                  fontSize: 14,
                   cursor: 'pointer',
                   boxShadow: '0 0 6px rgba(239, 68, 68, 0.4)'
                 }}
+                title="Remove diagram image"
               >
                 ✕
               </button>
@@ -1324,10 +1341,10 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                   <button
                     type="button"
                     onClick={() => handleRemoveAddedQuestion(activeSectionId, q.id)}
-                    style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
+                    style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '8px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Delete question"
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
                   </button>
                 </div>
               ))}

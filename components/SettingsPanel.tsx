@@ -276,14 +276,14 @@ export default function SettingsPanel({
                     onClick={(e) => { e.stopPropagation(); removeLogoBackground() }}
                     style={{
                       background: 'linear-gradient(135deg, #0ea5e9, #8b5cf6)', color: '#fff', border: 'none',
-                      borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 700,
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
-                      boxShadow: '0 0 10px rgba(14, 165, 233, 0.3)', transition: 'all 0.2s',
+                      borderRadius: '6px', padding: '8px 14px', fontSize: '12px', fontWeight: 700,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                      minHeight: '44px', boxShadow: '0 0 10px rgba(14, 165, 233, 0.3)', transition: 'all 0.2s',
                     }}
                     onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
                     onMouseOut={(e) => (e.currentTarget.style.transform = 'none')}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>auto_fix_high</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>auto_fix_high</span>
                     <span>Remove Background</span>
                   </button>
                 </div>
@@ -292,10 +292,12 @@ export default function SettingsPanel({
                   onClick={(e) => { e.stopPropagation(); handleInstantChange('logo', null) }}
                   style={{
                     position: 'absolute', top: -10, right: -10, background: 'rgba(239, 68, 68, 0.9)',
-                    color: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
+                    color: 'white', border: 'none', borderRadius: '50%', width: 36, height: 36,
+                    minWidth: 44, minHeight: 44,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
                     cursor: 'pointer', zIndex: 20
                   }}
+                  title="Remove logo"
                 >✕</button>
               </div>
             ) : (
@@ -425,14 +427,14 @@ export default function SettingsPanel({
           <div className="pc-cyber-field" style={{ marginTop: '16px' }}>
             <label className="pc-cyber-label">Instructions (one per line)</label>
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-              <div style={{ display: 'flex', gap: '8px', background: '#090d16', border: '1px solid rgba(56, 189, 248, 0.12)', borderBottom: 'none', padding: '6px 12px', borderRadius: '8px 8px 0 0', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '8px', background: '#090d16', border: '1px solid rgba(56, 189, 248, 0.12)', borderBottom: 'none', padding: '6px 12px', borderRadius: '8px 8px 0 0', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => insertBoldText(instRef, 'instructions')}
                   style={{
                     background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer',
                     fontWeight: 'bold', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px',
-                    padding: '4px 8px', borderRadius: '4px', transition: 'all 0.2s',
+                    padding: '6px 12px', minHeight: '44px', borderRadius: '6px', transition: 'all 0.2s',
                   }}
                   onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.08)')}
                   onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -447,14 +449,14 @@ export default function SettingsPanel({
                   onClick={() => handleInstantChange('instructions', DEFAULT_SCHOOL_INSTRUCTIONS)}
                   style={{
                     background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer',
-                    fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px',
-                    padding: '4px 8px', borderRadius: '4px', transition: 'all 0.2s', marginLeft: 'auto',
+                    fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px',
+                    padding: '6px 12px', minHeight: '44px', borderRadius: '6px', transition: 'all 0.2s', marginLeft: 'auto',
                   }}
                   onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.08)'; e.currentTarget.style.color = '#00f2fe' }}
                   onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8' }}
                   title="Load default CBSE-style instructions"
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>restart_alt</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>restart_alt</span>
                   <span>Load Defaults</span>
                 </button>
               </div>
@@ -536,13 +538,14 @@ export default function SettingsPanel({
                     color: '#fff',
                     border: 'none',
                     borderRadius: '6px',
-                    padding: '6px 12px',
-                    fontSize: '11px',
+                    padding: '8px 14px',
+                    fontSize: '12px',
                     fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '6px',
+                    minHeight: '44px',
                     boxShadow: '0 0 10px rgba(14, 165, 233, 0.3)',
                     transition: 'all 0.2s',
                   }}
@@ -550,7 +553,7 @@ export default function SettingsPanel({
                   onMouseOut={(e) => (e.currentTarget.style.transform = 'none')}
                   title="Remove white/solid background using canvas extraction"
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>auto_fix_high</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>auto_fix_high</span>
                   <span>Remove Background</span>
                 </button>
               </div>
@@ -569,15 +572,18 @@ export default function SettingsPanel({
                   color: 'white',
                   border: 'none',
                   borderRadius: '50%',
-                  width: 24,
-                  height: 24,
+                  width: 36,
+                  height: 36,
+                  minWidth: 44,
+                  minHeight: 44,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 12,
+                  fontSize: 14,
                   cursor: 'pointer',
                   zIndex: 20
                 }}
+                title="Remove logo"
               >
                 ✕
               </button>

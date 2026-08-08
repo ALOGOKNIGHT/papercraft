@@ -1167,17 +1167,17 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
             <div className="pc-card-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
               <div>
                 <div className="pc-kicker">Final Preview</div>
-                <div style={{ fontSize: '28px', fontWeight: '700', fontFamily: "'Montserrat', sans-serif", color: '#1a1a2e', marginBottom: '6px' }}>Print &amp; Export</div>
-                <div style={{ color: '#47464c' }}>Review the final paper and export it without changing the existing question paper template.</div>
+                <div style={{ fontSize: '24px', fontWeight: '700', fontFamily: "'Montserrat', sans-serif", color: '#fff', marginBottom: '6px' }}>Print &amp; Export</div>
+                <div style={{ color: '#94a3b8', fontSize: '13px' }}>Review the final paper and export it without changing the existing question paper template.</div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <button className="pc-button-ghost" onClick={() => handlePrint('single')}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', width: '100%', maxWidth: '500px' }} className="sm:w-auto">
+                <button className="pc-button-ghost min-h-[44px] px-3.5 py-2 text-xs md:text-sm font-semibold border border-white/20 rounded-lg text-white" onClick={() => handlePrint('single')}>
                   Print 1-Per-Sheet
                 </button>
-                <button className="pc-button-secondary" onClick={() => handlePrint('dual')}>
+                <button className="pc-button-secondary min-h-[44px] px-3.5 py-2 text-xs md:text-sm font-semibold bg-[#00f2fe] text-gray-900 rounded-lg" onClick={() => handlePrint('dual')}>
                   Print 2-Per-Sheet
                 </button>
-                <button className="pc-button-primary" onClick={exportToWord}>
+                <button className="pc-button-primary min-h-[44px] px-3.5 py-2 text-xs md:text-sm font-semibold bg-gradient-to-r from-sky-500 to-purple-600 text-white rounded-lg" onClick={exportToWord}>
                   Download Word
                 </button>
               </div>
@@ -1186,25 +1186,27 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
         </div>
       )}
 
-      <div
-        className="paper-sheet"
-        style={{
-          background: '#fff',
-          width: printMode === 'dual' ? '297mm' : '210mm',
-          minHeight: printMode === 'dual' ? '210mm' : '297mm',
-          margin: '0 auto',
-          padding: `${layout.marginTop}mm ${layout.marginRight}mm ${layout.marginBottom}mm ${layout.marginLeft}mm`,
-          boxSizing: 'border-box',
+      {/* On-screen horizontally scrollable paper container for small screen widths */}
+      <div className="w-full overflow-x-auto py-2 flex justify-start md:justify-center scrollbar-none">
+        <div
+          className="paper-sheet flex-shrink-0"
+          style={{
+            background: '#fff',
+            width: printMode === 'dual' ? '297mm' : '210mm',
+            minHeight: printMode === 'dual' ? '210mm' : '297mm',
+            margin: '0 auto',
+            padding: `${layout.marginTop}mm ${layout.marginRight}mm ${layout.marginBottom}mm ${layout.marginLeft}mm`,
+            boxSizing: 'border-box',
 
-          fontFamily: layout.fontFamily,
-          fontSize: layout.questionFontSize + 'px',
-          lineHeight: layout.lineHeight,
-          color: '#000',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+            fontFamily: layout.fontFamily,
+            fontSize: layout.questionFontSize + 'px',
+            lineHeight: layout.lineHeight,
+            color: '#000',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
         {layout.watermarkEnabled && meta.logo && (
           <img
             className="watermark-img"
@@ -1603,6 +1605,8 @@ export default function PaperPreview({ meta, layout, questions, hideControls, is
           )
         })()}
       </div>
+      </div>
     </div>
   )
 }
+
