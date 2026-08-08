@@ -655,7 +655,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
   return (
     <div className="pc-editor-container animate-fadeup delay-1">
       {/* ── Left Sidebar ────────────────────────────────────────── */}
-      <aside className="pc-editor-sidebar w-full md:w-60 min-w-0 flex-shrink-0">
+      <aside className="pc-editor-sidebar" style={{ minWidth: '240px' }}>
         <div className="pc-editor-sidebar-header">
           <h3 className="pc-editor-sidebar-title">Question Builder</h3>
           <p className="pc-editor-sidebar-subtitle">
@@ -734,15 +734,12 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '44px',
-                          minHeight: '44px',
-                          padding: '4px',
-                          opacity: 0.8,
+                          padding: '2px',
+                          opacity: 0.6,
                         }}
                         title="Move Up"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_upward</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_upward</span>
                       </button>
                     )}
                     {/* Move Down */}
@@ -760,15 +757,12 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '44px',
-                          minHeight: '44px',
-                          padding: '4px',
-                          opacity: 0.8,
+                          padding: '2px',
+                          opacity: 0.6,
                         }}
                         title="Move Down"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_downward</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_downward</span>
                       </button>
                     )}
                     {/* Rename */}
@@ -785,14 +779,11 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '44px',
-                        minHeight: '44px',
-                        padding: '4px',
+                        padding: '2px',
                       }}
                       title="Rename section"
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
                     </button>
                     {/* Delete — hidden when only 1 section */}
                     {sectionsList.length > 1 && (
@@ -809,15 +800,12 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '44px',
-                          minHeight: '44px',
-                          padding: '4px',
-                          opacity: 0.85,
+                          padding: '2px',
+                          opacity: 0.7,
                         }}
                         title="Delete section and its questions"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
                       </button>
                     )}
                   </div>
@@ -861,17 +849,14 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
           background: 'rgba(56, 189, 248, 0.03)',
           border: '1px solid rgba(56, 189, 248, 0.08)',
           borderRadius: '8px',
-          padding: '12px 16px',
-          flexWrap: 'wrap',
-          width: '100%',
-          boxSizing: 'border-box'
+          padding: '12px 16px'
         }}>
           <span style={{ color: '#64748b', fontSize: '14px', fontWeight: 600 }}>Editing Section {activeSection.id}:</span>
           {renamingSectionId === activeSection.id ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <input
                 className="pc-ai-gen-input"
-                style={{ padding: '6px 12px', fontSize: '15px', width: '100%', maxWidth: '280px', boxSizing: 'border-box' }}
+                style={{ padding: '6px 12px', fontSize: '15px', width: '280px', boxSizing: 'border-box' }}
                 value={renameValue}
                 onChange={(e) => setRenameValue(e.target.value)}
                 onKeyDown={(e) => {
@@ -917,9 +902,9 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
               {/* Subject Toggle Buttons */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
                 <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</label>
-                <div style={{ display: 'flex', gap: '8px', width: '100%', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                   {([
-                    { key: 'math',      label: 'Math',        icon: 'calculate' },
+                    { key: 'math',      label: 'Mathematics', icon: 'calculate' },
                     { key: 'chemistry', label: 'Chemistry',   icon: 'science' },
                     { key: 'physics',   label: 'Physics',     icon: 'bolt' },
                   ] as const).map(({ key, label, icon }) => (
@@ -929,9 +914,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                       disabled={isGenerating}
                       onClick={() => setAiSubject(key)}
                       style={{
-                        flex: '1 1 0',
-                        minWidth: '90px',
-                        minHeight: '44px',
+                        flex: 1,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -961,9 +944,9 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
               </div>
 
               {/* Row 1: Section and Type selectors */}
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap', width: '100%' }}>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
                 {/* Target Section */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1 1 100%', minWidth: 0 }} className="sm:flex-1">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '140px' }}>
                   <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Add to Section</label>
                   <select
                     value={activeSectionId}
@@ -989,7 +972,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                 </div>
 
                 {/* Question Type */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1 1 100%', minWidth: 0 }} className="sm:flex-1">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
                   <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question Type</label>
                   <select
                     value={aiQuestionType}
@@ -1017,7 +1000,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                 </div>
 
                 {/* AI Provider */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1 1 100%', minWidth: 0 }} className="sm:flex-1">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px', flex: isMobileSheet ? '1 1 100%' : 'none' }}>
                   <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Engine</label>
                   <select
                     value={aiProvider}
@@ -1180,18 +1163,15 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                   color: 'white',
                   border: 'none',
                   borderRadius: '50%',
-                  width: 32,
-                  height: 32,
-                  minWidth: 44,
-                  minHeight: 44,
+                  width: 22,
+                  height: 22,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 14,
+                  fontSize: 11,
                   cursor: 'pointer',
                   boxShadow: '0 0 6px rgba(239, 68, 68, 0.4)'
                 }}
-                title="Remove diagram image"
               >
                 ✕
               </button>
@@ -1344,10 +1324,10 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                   <button
                     type="button"
                     onClick={() => handleRemoveAddedQuestion(activeSectionId, q.id)}
-                    style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '8px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
                     title="Delete question"
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
                   </button>
                 </div>
               ))}

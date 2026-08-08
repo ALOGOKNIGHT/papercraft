@@ -485,7 +485,7 @@ export default function Home() {
               <div style={{ position: 'relative' }}>
                 <button 
                   onClick={() => setShowModeDropdown(!showModeDropdown)} 
-                  className={`pc-avatar-btn touch-target-44 ${showModeDropdown ? 'active' : ''}`} 
+                  className={`pc-avatar-btn ${showModeDropdown ? 'active' : ''}`} 
                   aria-label="Switch Institute Type"
                   style={{
                     borderColor: showModeDropdown ? '#00f2fe' : 'rgba(255, 255, 255, 0.3)',
@@ -511,7 +511,7 @@ export default function Home() {
                         position: 'absolute',
                         right: 0,
                         top: 'calc(100% + 12px)',
-                        width: 'min(320px, calc(100vw - 32px))',
+                        width: '320px',
                         background: '#111827',
                         border: '1px solid rgba(6, 182, 212, 0.2)',
                         borderRadius: '16px',
@@ -537,7 +537,6 @@ export default function Home() {
                             alignItems: 'center',
                             gap: '12px',
                             padding: '10px 12px',
-                            minHeight: '44px',
                             borderRadius: '10px',
                             background: 'rgba(6, 182, 212, 0.08)',
                             border: '1px solid rgba(6, 182, 212, 0.2)',
@@ -564,7 +563,6 @@ export default function Home() {
                           alignItems: 'center',
                           gap: '12px',
                           padding: '12px',
-                          minHeight: '44px',
                           borderRadius: '10px',
                           background: appMode === 'school' ? 'rgba(6, 182, 212, 0.08)' : '#0d121f',
                           border: appMode === 'school' ? '1px solid #00f2fe' : '1px solid rgba(56, 189, 248, 0.05)',
@@ -598,7 +596,6 @@ export default function Home() {
                           alignItems: 'center',
                           gap: '12px',
                           padding: '12px',
-                          minHeight: '44px',
                           borderRadius: '10px',
                           background: appMode === 'coaching' ? 'rgba(6, 182, 212, 0.08)' : '#0d121f',
                           border: appMode === 'coaching' ? '1px solid #00f2fe' : '1px solid rgba(56, 189, 248, 0.05)',
@@ -629,14 +626,14 @@ export default function Home() {
         </header>
 
         {/* Horizontal scrollable step progress bar below header (mobile only, Change 1) */}
-        <div className="md:hidden flex items-center overflow-x-auto whitespace-nowrap py-2 px-4 border-b border-[rgba(56,189,248,0.12)] bg-[#0d1321] gap-2 justify-between scrollbar-none no-print">
+        <div className="md:hidden flex items-center overflow-x-auto whitespace-nowrap py-3 px-4 border-b border-[rgba(56,189,248,0.12)] bg-[#0d1321] gap-2 justify-between scrollbar-none no-print">
           {tabs.map((t, idx) => (
             <span key={t.id} className="flex items-center gap-2">
               {idx > 0 && <span className="text-gray-600 text-xs">→</span>}
               <button
                 onClick={() => setTab(t.id)}
-                className={`text-xs font-bold tracking-wide uppercase transition-all duration-200 min-h-[44px] px-2 flex items-center ${
-                  tab === t.id ? 'text-[#00f2fe] border-b-2 border-[#00f2fe]' : 'text-gray-400'
+                className={`text-xs font-bold tracking-wide uppercase transition-all duration-200 ${
+                  tab === t.id ? 'text-[#00f2fe] border-b border-[#00f2fe] pb-0.5' : 'text-gray-400'
                 }`}
               >
                 {`0${idx + 1} ${t.label}`}

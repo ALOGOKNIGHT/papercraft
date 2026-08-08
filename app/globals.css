@@ -28,7 +28,7 @@
 
 /* ── Reset ───────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { min-height: 100vh; width: 100%; max-width: 100vw; overflow-x: hidden; }
+html, body { min-height: 100vh; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -36,8 +36,6 @@ body {
   font-size: 14px;
   line-height: 1.6;
   overflow-x: hidden;
-  width: 100%;
-  max-width: 100vw;
 }
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font: inherit; }
@@ -541,9 +539,6 @@ body {
   color: #f8fafc !important;
   font-family: 'Plus Jakarta Sans', sans-serif;
   min-height: 100vh;
-  width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
 }
 
 /* Scrollbars for dark workspace */
@@ -1641,14 +1636,6 @@ body {
     width: 100% !important;
     padding: 16px !important;
   }
-  .dark-workspace .pc-editor-content {
-    padding: 20px 16px 80px !important;
-    max-width: 100% !important;
-  }
-  .dark-workspace .pc-editor-page-title {
-    font-size: 24px !important;
-    margin-bottom: 20px !important;
-  }
   
   /* School Editor Stacking overrides */
   .pc-school-editor-container {
@@ -1683,7 +1670,6 @@ body {
   }
   .pc-school-qtype-selector button {
     flex-shrink: 0 !important;
-    min-height: 44px !important;
   }
 
   /* School Editor Match Column Stacking */
@@ -1699,7 +1685,6 @@ body {
   }
   .pc-school-action-buttons button {
     width: 100% !important;
-    min-height: 44px !important;
   }
 
   /* School Editor Added Questions MCQ options */
@@ -1714,7 +1699,6 @@ body {
   }
   .pc-ai-trigger-btn {
     display: flex !important;
-    min-height: 48px !important;
   }
   
   /* Stacking MCQ Options vertically on mobile */
@@ -1728,17 +1712,10 @@ body {
   }
   .dark-workspace .pc-custom-radio {
     order: 2 !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
   }
   .dark-workspace .pc-option-remove {
     order: 3 !important;
     margin-left: auto !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
   }
 
   /* Stacking Bottom Actions vertically on mobile */
@@ -1749,20 +1726,10 @@ body {
   .dark-workspace .pc-capsule-btn-primary,
   .dark-workspace .pc-capsule-btn-secondary {
     width: 100% !important;
-    min-height: 48px !important;
   }
-}
-
-/* Touch Target Utility for Small Buttons & Icons */
-.touch-target-44 {
-  min-width: 44px;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* Desktop default styling to hide trigger button */
 .pc-ai-trigger-btn {
   display: none !important;
-}
+}
