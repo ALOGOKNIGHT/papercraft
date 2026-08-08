@@ -655,7 +655,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
   return (
     <div className="pc-editor-container animate-fadeup delay-1">
       {/* ── Left Sidebar ────────────────────────────────────────── */}
-      <aside className="pc-editor-sidebar" style={{ minWidth: '240px' }}>
+      <aside className="pc-editor-sidebar w-full md:w-60 min-w-0 flex-shrink-0">
         <div className="pc-editor-sidebar-header">
           <h3 className="pc-editor-sidebar-title">Question Builder</h3>
           <p className="pc-editor-sidebar-subtitle">
@@ -861,14 +861,17 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
           background: 'rgba(56, 189, 248, 0.03)',
           border: '1px solid rgba(56, 189, 248, 0.08)',
           borderRadius: '8px',
-          padding: '12px 16px'
+          padding: '12px 16px',
+          flexWrap: 'wrap',
+          width: '100%',
+          boxSizing: 'border-box'
         }}>
           <span style={{ color: '#64748b', fontSize: '14px', fontWeight: 600 }}>Editing Section {activeSection.id}:</span>
           {renamingSectionId === activeSection.id ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: '100%' }}>
               <input
                 className="pc-ai-gen-input"
-                style={{ padding: '6px 12px', fontSize: '15px', width: '280px', boxSizing: 'border-box' }}
+                style={{ padding: '6px 12px', fontSize: '15px', width: '100%', maxWidth: '280px', boxSizing: 'border-box' }}
                 value={renameValue}
                 onChange={(e) => setRenameValue(e.target.value)}
                 onKeyDown={(e) => {
@@ -958,9 +961,9 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
               </div>
 
               {/* Row 1: Section and Type selectors */}
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap', width: '100%' }}>
                 {/* Target Section */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '140px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1 1 100%', minWidth: 0 }} className="sm:flex-1">
                   <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Add to Section</label>
                   <select
                     value={activeSectionId}
@@ -986,7 +989,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                 </div>
 
                 {/* Question Type */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '160px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1 1 100%', minWidth: 0 }} className="sm:flex-1">
                   <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question Type</label>
                   <select
                     value={aiQuestionType}
@@ -1014,7 +1017,7 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
                 </div>
 
                 {/* AI Provider */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px', flex: isMobileSheet ? '1 1 100%' : 'none' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: '1 1 100%', minWidth: 0 }} className="sm:flex-1">
                   <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Engine</label>
                   <select
                     value={aiProvider}

@@ -247,7 +247,7 @@ export default function SettingsPanel({
   // â”€â”€ SCHOOL MODE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (appMode === 'school') {
     return (
-      <div style={{ maxWidth: 800, margin: '0 auto' }} className="space-y-6 animate-fadeup delay-1 pb-24 md:pb-0">
+      <div style={{ maxWidth: 800, margin: '0 auto' }} className="w-full max-w-full md:max-w-[800px] space-y-6 animate-fadeup delay-1 pb-24 md:pb-0">
         {renderPaperNameInput()}
 
         {/* â”€â”€ Card 1: School Identity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
@@ -358,7 +358,7 @@ export default function SettingsPanel({
           </div>
 
           {/* 2x2 grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6" style={{ marginTop: '16px' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6" style={{ marginTop: '16px' }}>
             {/* Class */}
             <div className="pc-cyber-field">
               <label className="pc-cyber-label">Class</label>
@@ -507,7 +507,7 @@ export default function SettingsPanel({
 
   // ── COACHING MODE (original, unchanged) ───────────────────────
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto' }} className="space-y-6 animate-fadeup delay-1 pb-24 md:pb-0">
+    <div style={{ maxWidth: 800, margin: '0 auto' }} className="w-full max-w-full md:max-w-[800px] space-y-6 animate-fadeup delay-1 pb-24 md:pb-0">
       {renderPaperNameInput()}
 
       {/* ── Card 1: Header logo upload ─────────────────────────── */}
@@ -614,7 +614,7 @@ export default function SettingsPanel({
         </div>
 
         {/* 2x2 Form grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
           <div className="pc-cyber-field">
             <label className="pc-cyber-label">Date</label>
             <input

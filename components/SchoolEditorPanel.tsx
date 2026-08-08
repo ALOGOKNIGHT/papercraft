@@ -631,8 +631,8 @@ export default function SchoolEditorPanel({ questions, setQuestions, meta, setMe
   return (
     <div className="pc-school-editor-container" style={{ display: 'flex', height: 'calc(100vh - 76px)', overflow: 'hidden' }}>
       {/* ── LEFT SIDEBAR ──────────────────────────────────────── */}
-      <aside className="pc-school-editor-sidebar" style={{
-        width: '260px', minWidth: '260px', background: '#070c15',
+      <aside className="pc-school-editor-sidebar w-full md:w-64 min-w-0 flex-shrink-0" style={{
+        background: '#070c15',
         borderRight: '1px solid rgba(56, 189, 248, 0.08)', display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
       }}>
