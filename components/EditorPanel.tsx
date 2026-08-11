@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { PaperMeta, QuestionsMap, Question } from '@/lib/types'
 import { getOrderedKeys } from './PaperPreview'
+import MathText from './MathText'
 
 // ── Subject-specific AI system prompts ─────────────────────────────────
 const MATH_PROMPT = `You are a math question parser for Indian exam papers.
@@ -178,6 +179,147 @@ function parseLocalQuestionAndOptions(text: string) {
   return null
 }
 
+// ── Bulk Add Template & Parser Helper ───────────────────────────
+const BULK_TEMPLATE_PLACEHOLDER = `1. Question text goes here
+a. Option A text
+b. Option B text
+c. Option C text
+d. Option D text
+
+2. Next question text
+a. Option A text
+b. Option B text
+c. Option C text
+d. Option D text`
+
+export interface BulkParsedItem {
+  tempId: string
+  statement: string
+  options: [string, string, string, string]
+  warning?: string
+  isValid: boolean
+}
+
+export function parseBulkMcqText(rawInput: string): BulkParsedItem[] {
+  const normalizedText = rawInput.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+  if (!normalizedText) return []
+
+  const lines = normalizedText.split('\n')
+
+  // Question header regex: matches line starting with a question number "1.", "2.", "1)", "Q1.", "Q1)"
+  const qHeaderRegex = /^\s*(?:Q\.?\s*)?(\d+)[\.)]\s*(.*)$/i
+
+  // Option line regexes
+  const letterOptRegex = /^\s*(?:\(?([a-dA-D])\)?[\.\)-]|\[([a-dA-D])\])\s*(.*)$/
+  const numOptRegex = /^\s*(?:\(?([1-4])\)?[\.\)-]|\[([1-4])\])\s*(.*)$/
+
+  // Group lines into independent question blocks
+  const blocks: string[][] = []
+  let currentLines: string[] = []
+
+  lines.forEach((line) => {
+    const trimmed = line.trim()
+    const qMatch = trimmed.match(qHeaderRegex)
+    const letterMatch = trimmed.match(letterOptRegex)
+
+    // A line starts a new question block if it matches the question number format (1., 2., 3...)
+    // AND is not an option line starting with a., b., c., d.
+    if (qMatch && !letterMatch) {
+      if (currentLines.length > 0) {
+        blocks.push(currentLines)
+      }
+      currentLines = [line]
+    } else {
+      if (currentLines.length > 0) {
+        currentLines.push(line)
+      } else if (trimmed) {
+        // Fallback for un-numbered initial block
+        currentLines.push(line)
+      }
+    }
+  })
+
+  if (currentLines.length > 0) {
+    blocks.push(currentLines)
+  }
+
+  // Parse each question block independently
+  return blocks.map((blockLines, bIdx) => {
+    const stemLines: string[] = []
+    const rawOptsMap: Record<number, string> = {}
+    let foundOpt = false
+
+    blockLines.forEach((rawLine) => {
+      const line = rawLine.trim()
+      if (!line) return
+
+      const letterMatch = line.match(letterOptRegex)
+      const numMatch = line.match(numOptRegex)
+
+      let optIdx = -1
+      let optText = ''
+
+      if (letterMatch && letterMatch[1]) {
+        const charKey = letterMatch[1].toLowerCase()
+        optIdx = ['a', 'b', 'c', 'd'].indexOf(charKey)
+        optText = letterMatch[3] || ''
+      } else if (numMatch && numMatch[1] && foundOpt) {
+        const numVal = parseInt(numMatch[1], 10)
+        if (numVal >= 1 && numVal <= 4) {
+          optIdx = numVal - 1;
+          optText = numMatch[3] || ''
+        }
+      }
+
+      if (optIdx !== -1) {
+        foundOpt = true
+        rawOptsMap[optIdx] = optText.trim()
+      } else if (!foundOpt) {
+        // Strip leading question number (e.g. "1. " or "Q1. ") from stem lines
+        const cleanLine = line.replace(/^\s*(?:Q\.?\s*)?\d+[\.)]\s*/i, '').trim()
+        if (cleanLine) {
+          stemLines.push(cleanLine)
+        }
+      } else {
+        // Append continuation lines to the last discovered option choice
+        const lastIdx = Object.keys(rawOptsMap).map(Number).sort((a, b) => b - a)[0]
+        if (lastIdx !== undefined) {
+          rawOptsMap[lastIdx] += ' ' + line
+        }
+      }
+    })
+
+    const statement = stemLines.join('\n').trim()
+    const options: [string, string, string, string] = [
+      rawOptsMap[0] || '',
+      rawOptsMap[1] || '',
+      rawOptsMap[2] || '',
+      rawOptsMap[3] || ''
+    ]
+
+    const missingOpts: string[] = []
+    if (!options[0]) missingOpts.push('a')
+    if (!options[1]) missingOpts.push('b')
+    if (!options[2]) missingOpts.push('c')
+    if (!options[3]) missingOpts.push('d')
+
+    let warning: string | undefined
+    if (!statement) {
+      warning = `Question ${bIdx + 1}: Missing question statement.`
+    } else if (missingOpts.length > 0) {
+      warning = `Question ${bIdx + 1} is missing option ${missingOpts.join(', ')} — please fix or it will be skipped.`
+    }
+
+    return {
+      tempId: 'bulk_' + bIdx + '_' + Math.random().toString(36).substring(2, 7),
+      statement,
+      options,
+      warning,
+      isValid: Boolean(statement && missingOpts.length === 0)
+    }
+  })
+}
+
 interface Props {
   questions: QuestionsMap
   setQuestions: React.Dispatch<React.SetStateAction<QuestionsMap>>
@@ -189,6 +331,13 @@ interface Props {
 export default function EditorPanel({ questions, setQuestions, meta, setMeta, appMode = 'coaching' }: Props) {
   const [activeSectionId, setActiveSectionId] = useState<string>('A')
   const [isAiSheetOpen, setIsAiSheetOpen] = useState(false)
+
+  // Add question mode: 'single' (manual single entry) vs 'bulk' (bulk template entry)
+  const [addMode, setAddMode] = useState<'single' | 'bulk'>('single')
+
+  // Bulk add states
+  const [bulkText, setBulkText] = useState('')
+  const [bulkParsedList, setBulkParsedList] = useState<BulkParsedItem[]>([])
 
   // Image Compression Utility (Change 12)
   const compressImage = (base64Str: string, maxBytes: number, callback: (compressed: string) => void) => {
@@ -572,6 +721,114 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
 
   const handleSaveDraft = () => {
     triggerToast('✓ Question saved as a draft.')
+  }
+
+  // ── Bulk Add Handlers ───────────────────────────────────────
+  const handleInsertBulkSample = () => {
+    setBulkText(`1. In the diagram, a block of mass $M$ is attached to a light spring of constant $k$ and is at rest on a smooth table. A bullet of mass $m$ strikes it with velocity $v_0$ and gets embedded. What is the maximum compression of the spring?
+a. $v_0\\frac{m}{\\sqrt{kM}}$
+b. $v_0\\frac{m}{\\sqrt{k(M+m)}}$
+c. $v_0\\frac{m+M}{\\sqrt{km}}$
+d. $v_0\\sqrt{\\frac{m}{k}}$
+
+2. Which pigment is primarily responsible for absorbing light energy during photosynthesis in green plants?
+a. Chlorophyll a
+b. Chlorophyll b
+c. Carotenoids
+d. Xanthophylls`)
+    triggerToast('✓ Sample template loaded into text box!')
+  }
+
+  const handleParseBulk = () => {
+    if (!bulkText.trim()) {
+      triggerToast('Please paste or type questions using the template first!')
+      return
+    }
+    const parsed = parseBulkMcqText(bulkText)
+    if (parsed.length === 0) {
+      triggerToast('✕ Could not extract any questions. Ensure questions start with 1. 2. 3. and options with a. b. c. d.')
+      return
+    }
+    setBulkParsedList(parsed)
+    const validCount = parsed.filter(p => p.isValid).length
+    const warnCount = parsed.length - validCount
+    triggerToast(`✓ Parsed ${parsed.length} question${parsed.length > 1 ? 's' : ''}! (${validCount} valid${warnCount > 0 ? `, ${warnCount} need review` : ''})`)
+  }
+
+  const handleCommitBulkToPaper = () => {
+    const validItems = bulkParsedList.filter(p => p.statement.trim() && p.options.some(o => o.trim()))
+    if (validItems.length === 0) {
+      triggerToast('✕ No valid questions to add!')
+      return
+    }
+
+    const newQuestions: Question[] = validItems.map(item => ({
+      id: 'q_' + Math.random().toString(36).substring(2, 9),
+      text: item.statement.trim(),
+      type: 'MCQ',
+      options: [...item.options],
+      correctIndex: 0,
+      marks: 1,
+      hasOr: false,
+      orText: ''
+    }))
+
+    setQuestions(prev => ({
+      ...prev,
+      [activeSectionId]: [...(prev[activeSectionId] || []), ...newQuestions]
+    }))
+
+    setBulkText('')
+    setBulkParsedList([])
+    triggerToast(`✓ Successfully added ${newQuestions.length} question${newQuestions.length > 1 ? 's' : ''} to Section ${activeSectionId}!`)
+  }
+
+  const handleUpdateBulkItemStatement = (tempId: string, text: string) => {
+    setBulkParsedList(prev => prev.map(item => {
+      if (item.tempId !== tempId) return item
+      const updatedStatement = text
+      const hasOptions = item.options.every(o => o.trim().length > 0)
+      let warning: string | undefined
+      if (!updatedStatement.trim()) {
+        warning = 'Missing question statement.'
+      } else if (!hasOptions) {
+        const missing = ['a', 'b', 'c', 'd'].filter((_, i) => !item.options[i].trim())
+        warning = `Missing option${missing.length > 1 ? 's' : ''} (${missing.join(', ')}).`
+      }
+      return {
+        ...item,
+        statement: updatedStatement,
+        warning,
+        isValid: Boolean(updatedStatement.trim() && hasOptions)
+      }
+    }))
+  }
+
+  const handleUpdateBulkItemOption = (tempId: string, optIdx: number, val: string) => {
+    setBulkParsedList(prev => prev.map(item => {
+      if (item.tempId !== tempId) return item
+      const newOpts = [...item.options] as [string, string, string, string]
+      newOpts[optIdx] = val
+      const hasStatement = Boolean(item.statement.trim())
+      const hasOptions = newOpts.every(o => o.trim().length > 0)
+      let warning: string | undefined
+      if (!hasStatement) {
+        warning = 'Missing question statement.'
+      } else if (!hasOptions) {
+        const missing = ['a', 'b', 'c', 'd'].filter((_, i) => !newOpts[i].trim())
+        warning = `Missing option${missing.length > 1 ? 's' : ''} (${missing.join(', ')}).`
+      }
+      return {
+        ...item,
+        options: newOpts,
+        warning,
+        isValid: Boolean(hasStatement && hasOptions)
+      }
+    }))
+  }
+
+  const handleRemoveBulkItem = (tempId: string) => {
+    setBulkParsedList(prev => prev.filter(item => item.tempId !== tempId))
   }
 
   // Question deletion from paper list
@@ -1130,18 +1387,305 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
           );
         })()}
 
-        {/* ── Question Input Form ────────────────────────────────── */}
-        <div className="pc-editor-field-wrapper">
-          <label className="pc-editor-label">Question Statement</label>
-          <textarea
-            rows={5}
-            placeholder="Enter your question here (Paste a question with options A, B, C, D to auto-sort)..."
-            className="pc-cyber-textarea"
-            value={statement}
-            onChange={(e) => setStatement(e.target.value)}
-            onPaste={handlePasteQuestion}
-          />
+        {/* ── Mode Toggle: Single Question vs Bulk Add ─────────── */}
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          marginBottom: '24px',
+          borderBottom: '1px solid rgba(56, 189, 248, 0.12)',
+          paddingBottom: '12px',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            type="button"
+            onClick={() => setAddMode('single')}
+            style={{
+              background: addMode === 'single' ? 'rgba(0, 242, 254, 0.12)' : 'transparent',
+              border: addMode === 'single' ? '1px solid #00f2fe' : '1px solid rgba(56, 189, 248, 0.12)',
+              color: addMode === 'single' ? '#00f2fe' : '#64748b',
+              borderRadius: '8px',
+              padding: '10px 18px',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease',
+              boxShadow: addMode === 'single' ? '0 0 12px rgba(0, 242, 254, 0.15)' : 'none',
+              fontFamily: 'inherit'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add_circle</span>
+            <span>Manual Single Add</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAddMode('bulk')}
+            style={{
+              background: addMode === 'bulk' ? 'rgba(0, 242, 254, 0.12)' : 'transparent',
+              border: addMode === 'bulk' ? '1px solid #00f2fe' : '1px solid rgba(56, 189, 248, 0.12)',
+              color: addMode === 'bulk' ? '#00f2fe' : '#64748b',
+              borderRadius: '8px',
+              padding: '10px 18px',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease',
+              boxShadow: addMode === 'bulk' ? '0 0 12px rgba(0, 242, 254, 0.15)' : 'none',
+              fontFamily: 'inherit'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>playlist_add</span>
+            <span>Bulk Add (Fixed Template)</span>
+          </button>
         </div>
+
+        {addMode === 'bulk' ? (
+          /* ── BULK ADD INTERFACE ────────────────────────────── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
+            <div style={{
+              background: 'rgba(56, 189, 248, 0.03)',
+              border: '1px solid rgba(56, 189, 248, 0.12)',
+              borderRadius: '12px',
+              padding: '16px 20px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00f2fe', fontWeight: 700, fontSize: '14px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>format_list_numbered</span>
+                  <span>Bulk Question Importer</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleInsertBulkSample}
+                    style={{
+                      background: 'rgba(0, 242, 254, 0.08)',
+                      border: '1px solid rgba(0, 242, 254, 0.25)',
+                      color: '#00f2fe',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>integration_instructions</span>
+                    Insert Sample
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setBulkText(''); setBulkParsedList([]) }}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      color: '#94a3b8',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <p style={{ color: '#94a3b8', fontSize: '12px', lineHeight: 1.5, margin: 0 }}>
+                Type or paste multiple questions following the template format. Questions must start with a number (<code style={{ color: '#00f2fe' }}>1.</code>) followed by 4 options (<code style={{ color: '#00f2fe' }}>a. b. c. d.</code>). LaTeX math (<code style={{ color: '#00f2fe' }}>$...$</code>) is fully supported.
+              </p>
+            </div>
+
+            <div className="pc-editor-field-wrapper" style={{ marginBottom: 0 }}>
+              <label className="pc-editor-label">Paste Questions Text (Fixed Template)</label>
+              <textarea
+                rows={10}
+                placeholder={BULK_TEMPLATE_PLACEHOLDER}
+                className="pc-cyber-textarea"
+                style={{ fontFamily: 'monospace', fontSize: '13px', lineHeight: 1.6 }}
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={handleParseBulk}
+                className="pc-capsule-btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>find_in_page</span>
+                <span>Parse Questions</span>
+              </button>
+            </div>
+
+            {/* Bulk Parsed Preview List */}
+            {bulkParsedList.length > 0 && (
+              <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(56, 189, 248, 0.15)', paddingBottom: '10px' }}>
+                  <h4 style={{ color: '#fff', fontSize: '15px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#00f2fe', fontSize: 20 }}>preview</span>
+                    Preview & Edit Parsed Questions ({bulkParsedList.length})
+                  </h4>
+                  <span style={{ fontSize: '12px', color: bulkParsedList.every(p => p.isValid) ? '#10b981' : '#f59e0b', fontWeight: 600 }}>
+                    {bulkParsedList.filter(p => p.isValid).length} / {bulkParsedList.length} ready to add
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {bulkParsedList.map((item, idx) => (
+                    <div
+                      key={item.tempId}
+                      style={{
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        border: item.isValid ? '1px solid rgba(56, 189, 248, 0.2)' : '1px solid rgba(245, 158, 11, 0.4)',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        position: 'relative'
+                      }}
+                    >
+                      {/* Remove item button */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveBulkItem(item.tempId)}
+                        style={{
+                          position: 'absolute', top: '12px', right: '12px',
+                          background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
+                          color: '#ef4444', borderRadius: '6px', cursor: 'pointer',
+                          padding: '4px 8px', fontSize: '11px', fontWeight: 600,
+                          display: 'flex', alignItems: 'center', gap: '4px'
+                        }}
+                        title="Remove question from batch"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
+                        <span>Remove</span>
+                      </button>
+
+                      {/* Header Badge */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                        <span style={{
+                          background: 'rgba(0, 242, 254, 0.12)', color: '#00f2fe',
+                          fontSize: '11px', fontWeight: 700, borderRadius: '4px',
+                          padding: '2px 8px'
+                        }}>
+                          Q{idx + 1}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Type: MCQ • Marks: 1</span>
+                      </div>
+
+                      {/* Warning Banner */}
+                      {item.warning && (
+                        <div style={{
+                          background: 'rgba(245, 158, 11, 0.1)',
+                          border: '1px solid rgba(245, 158, 11, 0.3)',
+                          color: '#fbbf24',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          marginBottom: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>warning</span>
+                          <span>{item.warning}</span>
+                        </div>
+                      )}
+
+                      {/* Statement Input */}
+                      <div style={{ marginBottom: '12px' }}>
+                        <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                          Question Statement
+                        </label>
+                        <textarea
+                          rows={2}
+                          className="pc-cyber-textarea"
+                          style={{ fontSize: '13px', width: '100%', boxSizing: 'border-box' }}
+                          value={item.statement}
+                          onChange={(e) => handleUpdateBulkItemStatement(item.tempId, e.target.value)}
+                        />
+                        {/* Live KaTeX Render Preview */}
+                        {item.statement.includes('$') && (
+                          <div style={{ marginTop: '6px', padding: '6px 10px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', fontSize: '13px', color: '#f8fafc' }}>
+                            <span style={{ fontSize: '10px', color: '#00f2fe', fontWeight: 700, display: 'block', marginBottom: '2px' }}>MATH PREVIEW:</span>
+                            <MathText content={item.statement} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Options Input Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+                        {['a', 'b', 'c', 'd'].map((labelChar, optIdx) => (
+                          <div key={optIdx}>
+                            <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                              Option ({labelChar.toUpperCase()})
+                            </label>
+                            <input
+                              type="text"
+                              className="pc-option-input"
+                              style={{ width: '100%', boxSizing: 'border-box', fontSize: '12px' }}
+                              value={item.options[optIdx]}
+                              onChange={(e) => handleUpdateBulkItemOption(item.tempId, optIdx, e.target.value)}
+                            />
+                            {item.options[optIdx].includes('$') && (
+                              <div style={{ marginTop: '4px', fontSize: '12px', color: '#cbd5e1' }}>
+                                <MathText content={item.options[optIdx]} />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Commit Button */}
+                <div style={{ marginTop: '12px', borderTop: '1px solid rgba(56, 189, 248, 0.15)', paddingTop: '16px' }}>
+                  <button
+                    type="button"
+                    onClick={handleCommitBulkToPaper}
+                    disabled={!bulkParsedList.some(p => p.isValid)}
+                    className="pc-capsule-btn-primary"
+                    style={{
+                      opacity: bulkParsedList.some(p => p.isValid) ? 1 : 0.5,
+                      cursor: bulkParsedList.some(p => p.isValid) ? 'pointer' : 'not-allowed',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '12px 28px'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add_circle</span>
+                    <span>Add All ({bulkParsedList.filter(p => p.isValid).length}) Questions to Section {activeSectionId}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ── SINGLE QUESTION INPUT FORM (UNTOUCHED) ────────────── */
+          <>
+            <div className="pc-editor-field-wrapper">
+              <label className="pc-editor-label">Question Statement</label>
+              <textarea
+                rows={5}
+                placeholder="Enter your question here (Paste a question with options A, B, C, D to auto-sort)..."
+                className="pc-cyber-textarea"
+                value={statement}
+                onChange={(e) => setStatement(e.target.value)}
+                onPaste={handlePasteQuestion}
+              />
+            </div>
 
         {/* ── QUESTION DIAGRAM / IMAGE UPLOADER (NEW FEATURE) ───── */}
         <div className="pc-editor-field-wrapper">
@@ -1289,6 +1833,8 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
             <span>Save as Draft</span>
           </button>
         </div>
+        </>
+        )}
 
         {/* ── Questions in Active Section ───────────────────────── */}
         <div style={{ marginTop: '48px', borderTop: '2px dashed rgba(56, 189, 248, 0.15)', paddingTop: '32px' }}>
