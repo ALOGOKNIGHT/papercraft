@@ -585,8 +585,21 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
 
   // Section Handlers
   const handleAddSection = () => {
-    const nextLetter = String.fromCharCode(65 + Object.keys(questions).length)
-    const newTitle = `New Section ${nextLetter}`
+    const existingKeys = Object.keys(questions)
+    let nextLetter = ''
+    for (let i = 0; i < 26; i++) {
+      const letter = String.fromCharCode(65 + i)
+      if (!existingKeys.includes(letter)) {
+        nextLetter = letter
+        break
+      }
+    }
+    if (!nextLetter) {
+      triggerToast('✕ Maximum number of sections (26) reached!')
+      return
+    }
+
+    const newTitle = `Section ${nextLetter}`
     
     setQuestions(prev => ({
       ...prev,
@@ -598,7 +611,8 @@ export default function EditorPanel({ questions, setQuestions, meta, setMeta, ap
       customSectionNames: {
         ...prev.customSectionNames,
         [nextLetter]: newTitle
-      }
+      },
+      sectionOrder: [...(prev.sectionOrder || existingKeys), nextLetter]
     }))
     
     setActiveSectionId(nextLetter)
